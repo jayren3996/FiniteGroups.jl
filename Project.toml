@@ -1,0 +1,9 @@
+name = "FiniteGroups"
+uuid = "7eb45ad1-e93a-4d9d-8e8f-2bf75ed29802"
+authors = ["JieRen <32599461+jayren3996@users.noreply.github.com>"]
+version = "0.1.0"
+
+[deps]
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
