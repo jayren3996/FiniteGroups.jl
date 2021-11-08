@@ -9,6 +9,13 @@ using Pkg
 Pkg.add("FiniteGroups")
 ```
 
+Or directly from GitHub:
+
+```julia
+using Pkg
+Pkg.add(url="https://github.com/jayren3996/FiniteGroups.jl")
+```
+
 ## Examples
 
 ### Create a Finite Group
