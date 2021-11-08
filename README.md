@@ -9,7 +9,7 @@ using Pkg
 Pkg.add("FiniteGroups")
 ```
 
-Or directly from GitHub:
+Or, install the package directly from the GitHub URL:
 
 ```julia
 using Pkg
@@ -23,16 +23,20 @@ Pkg.add(url="https://github.com/jayren3996/FiniteGroups.jl")
 We can creat a point group using the group number or group name. For example, the following command:
 
 ```julia
-g = pointgroup(32)
+julia> g = pointgroup(32)
+Finite group : Oh
+Group order  : 48
+Classes      : 10
 ```
 
-or
+or use the point group name (for example Th group):
 
 ```julia
-g = pointgroup("Oh")
+julia> g = pointgroup("Th")
+Finite group : Th
+Group order  : 24
+Classes      : 8
 ```
-
-will all return an Oh group object.
 
 In general, given the multiplication table `multab` of the group, we can create the group object using the command:
 
@@ -52,17 +56,17 @@ If group `g` is chosen to be the pointgroup Oh, the result is:
 
 ```julia
 julia> charactertable(g)
-10×10 Matrix{Float64}:
- 1.0   1.0   1.0   1.0   1.0   1.0   1.0   1.0   1.0   1.0
- 1.0   1.0   1.0  -1.0  -1.0  -1.0  -1.0   1.0   1.0  -1.0
- 1.0  -1.0   1.0   1.0  -1.0  -1.0   1.0   1.0  -1.0   1.0
- 1.0  -1.0   1.0  -1.0   1.0   1.0  -1.0   1.0  -1.0  -1.0
- 2.0   0.0  -1.0   2.0   0.0   0.0  -1.0   2.0   0.0   2.0
- 2.0  -0.0  -1.0  -2.0  -0.0  -0.0   1.0   2.0   0.0  -2.0
- 3.0   1.0   0.0   1.0  -1.0   1.0  -0.0  -1.0  -1.0  -3.0
- 3.0   1.0   0.0  -1.0   1.0  -1.0  -0.0  -1.0  -1.0   3.0
- 3.0  -1.0   0.0  -1.0  -1.0   1.0   0.0  -1.0   1.0   3.0
- 3.0  -1.0  -0.0   1.0   1.0  -1.0  -0.0  -1.0   1.0  -3.0
+10×10 Matrix{Int64}:
+ 1   1   1   1   1   1   1   1   1   1
+ 1   1   1  -1  -1  -1  -1   1   1  -1
+ 1  -1   1   1  -1  -1   1   1  -1   1
+ 1  -1   1  -1   1   1  -1   1  -1  -1
+ 2   0  -1   2   0   0  -1   2   0   2
+ 2   0  -1  -2   0   0   1   2   0  -2
+ 3   1   0   1  -1   1   0  -1  -1  -3
+ 3   1   0  -1   1  -1   0  -1  -1   3
+ 3  -1   0  -1  -1   1   0  -1   1   3
+ 3  -1   0   1   1  -1   0  -1   1  -3
 ```
 
 ### Irreducible Representation
@@ -75,7 +79,7 @@ representations = irreps(g)
 
 For example, consider the group D4:
 
-```
+```julia
 g = pointgroup("D4")
 representations = irreps(g)
 ```
@@ -87,43 +91,43 @@ julia> representations[5]
 2-d irreducible representation of D4: 
 
 Element 1:
-2×2 Matrix{ComplexF64}:
-         1.0+0.0im          1.57009e-16-1.12686e-32im
- 1.57009e-16+1.12686e-32im          1.0+0.0im
+2×2 Matrix{Int64}:
+ 1  0
+ 0  1
 
 Element 2:
-2×2 Matrix{ComplexF64}:
-  6.84228e-49-1.0im          1.12686e-32+1.57009e-16im
- -1.12686e-32+1.57009e-16im          0.0+1.0im
+2×2 Matrix{Number}:
+ 0-1im   0
+  0     0+1im
 
 Element 3:
-2×2 Matrix{ComplexF64}:
-         -1.0+0.0im          -1.57009e-16+1.12686e-32im
- -1.57009e-16-1.12686e-32im          -1.0+3.08149e-33im
+2×2 Matrix{Int64}:
+ -1   0
+  0  -1
 
 Element 4:
-2×2 Matrix{ComplexF64}:
-         0.0+1.0im          -1.12686e-32-1.57009e-16im
- 1.12686e-32-1.57009e-16im  -3.08149e-33-1.0im
+2×2 Matrix{Number}:
+ 0+1im   0
+  0     0-1im
 
 Element 5:
-2×2 Matrix{ComplexF64}:
- -3.14018e-16+0.0im          -1.0+1.2326e-32im
-         -1.0-9.24446e-33im   0.0+0.0im
+2×2 Matrix{Int64}:
+ 0  1
+ 1  0
 
 Element 6:
-2×2 Matrix{ComplexF64}:
- -2.25371e-32-1.71057e-49im  1.2326e-32+1.0im
-   1.2326e-32-1.0im                 0.0+0.0im
+2×2 Matrix{Number}:
+  0     0-1im
+ 0+1im   0
 
 Element 7:
-2×2 Matrix{ComplexF64}:
- 3.14018e-16+0.0im         1.0-1.2326e-32im
-         1.0+1.2326e-32im  0.0+0.0im
+2×2 Matrix{Int64}:
+  0  -1
+ -1   0
 
 Element 8:
-2×2 Matrix{ComplexF64}:
-  2.25371e-32+1.71057e-49im  -1.2326e-32-1.0im
- -9.24446e-33+1.0im                  0.0+0.0im
+2×2 Matrix{Number}:
+  0     0+1im
+ 0-1im   0
 ```
 
