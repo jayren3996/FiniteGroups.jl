@@ -1,5 +1,5 @@
 # FiniteGroups.jl
- Julia package finite group theory calculation.
+ Julia package for finite group theory calculation.
 
 ## Installation
 In julia `REPL`, run the following script:
