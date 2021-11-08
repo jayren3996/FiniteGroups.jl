@@ -5,10 +5,10 @@ export charactertable
 Return the character table of group `g`.
 Use Burnside's method by defualt.
 """
-function charactertable(g::AbstractFiniteGroup; method::String="Burnside")
+function charactertable(g::AbstractFiniteGroup; method::String="Burnside", tol::Real=1e-7)
     h = class_multab(g)
     if method == "Burnside"
-        burnside(g, h)
+        burnside(g, h, tol=tol)
     end
 end
 

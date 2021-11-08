@@ -100,9 +100,20 @@ function prep(
         end
         isnothing(v0) || break
     end
-    isnothing(v0) && error("No nondegenerate eigenvector.")
-    vs = krylov_space(preg[2:order(g)], v0, D)
-    m = [beautify.(vs' * pregmat * vs) for pregmat in preg]
+    m = if isnothing(v0) 
+        # No nondegenerate eigenvector
+        error("No nondegenerate eigenvector")
+        # If encountered, consider using tensor decomposition.
+        #tensor = Array{promote_type(eltype.(preg)...)}(undef, D^2, order(g), D^2)
+        #for i=1:order(g)
+        #    tensor[:,i,:] .= preg[i]
+        #end
+        #res = block_canonical(tensor, trim=true)
+        #[res[:,i,:] for i=1:order]
+    else
+        vs = krylov_space(preg[2:order(g)], v0, D)
+        [beautify.(vs' * pregmat * vs) for pregmat in preg]
+    end
     Representation(g, m, χ=χ, reduced=true)
 end
 

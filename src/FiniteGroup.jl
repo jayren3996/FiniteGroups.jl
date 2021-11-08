@@ -1,3 +1,4 @@
+export FiniteGroup
 struct FiniteGroup{T <: Integer} <: AbstractFiniteGroup
     name::String
     multab::Matrix{T}
@@ -7,8 +8,7 @@ struct FiniteGroup{T <: Integer} <: AbstractFiniteGroup
     mult::Vector{Int64}
 end
 
-export finitegroup
-function finitegroup(
+function FiniteGroup(
     multab::AbstractMatrix{<:Integer}, 
     name::String="Unnamed group"
 )

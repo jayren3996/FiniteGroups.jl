@@ -2,7 +2,6 @@
 module FiniteGroups
 using LinearAlgebra, DelimitedFiles, SparseArrays
 
-
 export name, order, class, inclass, mult
 """
     AbstractFiniteGroup
@@ -38,10 +37,12 @@ function Base.display(g::AbstractFiniteGroup)
 end
 
 include("FiniteGroup.jl")
+include("PointGroups/PointGroups.jl")
 include("Character.jl")
 include("Dixon.jl")
 include("Representation.jl")
-include("PointGroups/PointGroups.jl")
+include("ProjReps.jl")
+
 
 
 end

@@ -12,11 +12,11 @@ export pointgroup
 function pointgroup(i::Integer)
     data = readdlm("$(@__DIR__)/Tables/$(PointGroups[i]).dat", '\t', Int)
     multab = reshape(data, size(data, 1), size(data, 2))
-    finitegroup(multab, PointGroups[i])
+    FiniteGroup(multab, PointGroups[i])
 end
 
 function pointgroup(g::String)
     data = readdlm("$(@__DIR__)/Tables/$(g).dat", '\t', Int)
     multab = reshape(data, size(data, 1), size(data, 2))
-    finitegroup(multab, g)
+    FiniteGroup(multab, g)
 end
