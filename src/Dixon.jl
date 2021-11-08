@@ -19,7 +19,7 @@ function dixon(
     end
     mat = vcat(transpose.(v)...)
     for i = 1:size(mat, 1)
-        normalize_modp!(view(mat, i, :), p)
+        normalize_modp!(g, view(mat, i, :), p)
     end
     maptocomplex.(mat, Z, n, ξ)
 end
@@ -38,27 +38,13 @@ end
 
 function eigvecs_modp(m::AbstractMatrix{<:Integer}, λ::Integer, modp::Integer)
     n = size(m, 1)
-    herm = hermiteform!([m-λ*I I], modp)
-    R = 1
-    while R <= n
-        iszero(sum(herm[R, 1:n])) && break
-        R += 1
+    herm = hermiteform!([m-λ*I; I], modp)
+    C = 1
+    while C <= n
+        iszero(sum(herm[1:n, C])) && break
+        C += 1
     end
-    vecs = herm[R:end, n+1:end]
-    #for i = 1:size(vecs, 1)
-    #    nornmalize_modp!(view(vecs, i, :), modp)
-    #end
-    Array(vecs')
-end
-
-function normalize_modp!(v::AbstractVector{<:Integer}, modp::Integer)
-    v0 = copy(v)
-    for i = 1:modp
-        v .+= v0
-        mod_vector!(v, modp)
-        isone(v[1]) && return v
-    end
-    error("Non-renormalizable.")
+    herm[n+1:end, C:end]
 end
 
 function vec_split(
@@ -69,130 +55,34 @@ function vec_split(
     isone(size(vs, 2)) && return [vs]
     php = vs' * h * vs 
     v = eigvecs_modp(php, modp)
-    [vs * vi for vi in v]
+    [mod!(vs * vi, modp) for vi in v]
+end
+
+function normalize_modp!(g::AbstractFiniteGroup, v::AbstractVector{<:Integer}, modp::Integer)
+    v0 = copy(v)
+    for i = 1:modp
+        v .+= v0
+        mod!(v, modp)
+        isone(v[1]) && break
+    end
+    d2 = order(g) // sum(v[i] * inv_modp(v[i], modp) // mult(g, i) for i =1:length(v))
+    d2 = mod(Int(d2), modp)
+    d = round(Int, sqrt(d2))
+    @assert d^2 == d2
+    v .*= d
+    mod!(v, modp)
 end
 
 #-------------------------------------------------------------------------------
-# Hermitian normal form
+# Calculation on prime integer field Fₚ
 #-------------------------------------------------------------------------------
-"""
-    hermiteform!(m::AbstractMatrix{<:Integer}, modp::Integer)
-
-Compute the Hermite form of a matrix in the integer field Fₚ 
-"""
-function hermiteform!(m::AbstractMatrix{<:Integer}, modp::Integer)
-    pointer = 1
-    x, y = size(m)
-    rank = size(m, 1)
-    for i = 1:x
-        while pointer <= y && set_prime_row!(m, i, col=pointer) 
-            pointer += 1
-        end
-        if pointer > y
-            rank = i-1
-            break
-        end
-        for j = i+1:x
-            row_reduce!(view(m, i, :), view(m, j, :), modp, col=pointer)
-        end
-        pointer += 1
+function inv_modp(i::Integer, p::Integer)
+    for j = 2:p-1
+        isone(mod(i*j, p)) && (return j)
     end
-    for i = 2:rank
-        n = findfirst(x -> x != 0, @view m[i, :])
-        if n === nothing
-            break
-        else
-            for j = 1:i-1
-                kill_row!(view(m, i, :), view(m, j, :), modp, col=n)
-            end
-        end
-        if n == y
-            break
-        end
-    end
-    m[1:rank, :]
+    error("Did not find inverse.")
 end
 
-
-function row_reduce!(
-    v1::AbstractVector{<:Integer}, 
-    v2::AbstractVector{<:Integer}, 
-    modp::Integer; 
-    col::Integer=1
-)
-    @assert length(v1) == length(v2) "v1, v2 should be of the same size."
-    if abs(v1[col]) < abs(v2[col])
-        if v1[col] == 0
-            (v2[col] > 0) || (v2 .*= -1)
-            mod_vector!(v2, modp)
-            swap_vector!(v1, v2)
-        else
-            kill_row!(v1, v2, modp, col=col)
-            row_reduce!(v1, v2, modp, col=col)
-        end
-    else
-        if v2[col] == 0
-            return nothing
-        else
-            kill_row!(v2, v1, modp, col=col)
-            row_reduce!(v1, v2, modp, col=col)
-        end
-    end
-end
-
-function kill_row!(
-    v1::AbstractVector{<:Integer}, 
-    v2::AbstractVector{<:Integer}, 
-    modp::Integer; 
-    col::Integer=1
-)
-    n, r = divrem(v2[col], v1[col])
-    v2 .-= n * v1
-    mod_vector!(v2, modp)
-end
-
-function set_prime_row!(
-    m::AbstractMatrix{<:Integer}, 
-    row::Integer; 
-    col::Integer=1
-)
-    if m[row, col] < 0
-        m[row, :] .*= -1
-    elseif m[row, col] == 0
-        n = findfirst(x -> x != 0, @view m[row+1:end, col])
-        if n === nothing
-            return true
-        else
-            swap_vector!(view(m, row, :), view(m, row+n, :), col=col)
-        end
-    end
-    return false
-end
-
-function swap_vector!(
-    v1::AbstractVector, 
-    v2::AbstractVector; 
-    col::Integer=1
-)
-    @assert length(v1) == length(v2) "v1, v2 should be of the same size."
-    if v2[col] < 0
-        for i = 1:length(v1)
-            v1[i], v2[i] = -v2[i], v1[i]
-        end
-    else
-        for i = 1:length(v1)
-            v1[i], v2[i] = v2[i], v1[i]
-        end
-    end
-end
-
-function mod_vector!(v::AbstractVector{<:Integer}, modp::Integer)
-    for i = 1:length(v)
-        v[i] = mod(v[i], modp)
-    end
-end
-
-# Integer field calculation Fₚ
 function primitive_root(n::Integer, modp::Integer)
     isone(n) && (return n)
     for i = 2:modp 
@@ -214,8 +104,9 @@ function findprime(g::AbstractFiniteGroup)
     while true
         Q = true
         for p in primes
-            iszero(mod(i, p)) && (Q=false; break)
-            (p^2 > i) && break
+            d, r = divrem(i, p)
+            iszero(r) && (Q=false; break)
+            (d <= p) && break
         end
         if Q
             iszero(mod(i-1, n)) ? (return (n, i)) : push!(primes, i)
@@ -236,4 +127,99 @@ function maptocomplex(N::Integer, Z::Integer, n::Integer, ξ::Number)
         C = ξ * C + list[i]
     end
     C
+end
+
+#-------------------------------------------------------------------------------
+# Hermitian normal form on prime integer field Fₚ
+#-------------------------------------------------------------------------------
+"""
+    hermiteform!(m::AbstractMatrix{<:Integer}, modp::Integer)
+
+Compute the Hermite form of a matrix in the prime integer field Fₚ 
+"""
+function hermiteform!(m::AbstractMatrix{<:Integer}, modp::Integer)
+    mod!(m, modp)
+    pointer = 1
+    x, y = size(m)
+    for i = 1:y-1
+        while pointer <= x && set_prime_column!(m, i, row=pointer) 
+            pointer += 1
+        end
+        pointer > x && break
+        for j = i+1:y
+            column_reduce!(view(m, :, i), view(m, :, j), modp, row=pointer)
+        end
+        pointer += 1
+    end
+    m
+end
+
+"""
+    column_reduce!(v1, v2, modp; col)
+
+Reduce column `v2` using column `v1`, with prime row set to `row`.
+"""
+function column_reduce!(
+    v1::AbstractVector{<:Integer}, 
+    v2::AbstractVector{<:Integer}, 
+    modp::Integer; 
+    row::Integer=1
+)
+    iszero(v2[row]) && (return nothing)
+    v1[row] > v2[row] && swap!(v1, v2)
+    kill_column!(v1, v2, modp, row=row)
+    column_reduce!(v1, v2, modp, row=row)
+end
+
+"""
+Basic column manipulation.
+"""
+function kill_column!(
+    v1::AbstractVector{<:Integer}, 
+    v2::AbstractVector{<:Integer}, 
+    modp::Integer; 
+    row::Integer=1
+)
+    v2 .-= (v2[row] ÷ v1[row]) * v1
+    mod!(v2, modp)
+end
+
+"""
+    set_prime_column!(m, row; col)
+
+Swap with the remaining column so that m[row, col] > 0.
+Return true if its impossible, and false otherwise.
+"""
+function set_prime_column!(
+    m::AbstractMatrix{<:Integer}, 
+    col::Integer; 
+    row::Integer=1
+)
+    iszero(m[row, col]) || (return false)
+    for j = col+1:size(m, 2)
+        if !iszero(m[row, j])
+            swap!(view(m, :, col), view(m, :, j))
+            return false
+        end
+    end
+    true
+end
+
+"""
+In place swap of `v1` and `v2`.
+"""
+@inline function swap!(v1::AbstractArray, v2::AbstractArray)
+    for i = 1:length(v1)
+        v1[i], v2[i] = v2[i], v1[i]
+    end
+end
+
+"""
+In place mod p on `v`.
+"""
+@inline function mod!(v::AbstractArray, modp::Integer)
+    for i = 1:length(v)
+        v[i] = mod(v[i], modp)
+    end
+    v
 end

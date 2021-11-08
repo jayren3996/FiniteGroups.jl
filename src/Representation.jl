@@ -1,6 +1,6 @@
-struct Representation{G<:AbstractFiniteGroup, T<:Number, M<:AbstractMatrix}
+struct Representation{G<:AbstractFiniteGroup, T<:Number, M<:AbstractVector{<:AbstractMatrix}}
     g::G
-    m::Vector{M}
+    m::M
     χ::Vector{T}
     reduced::Bool
 end
@@ -86,7 +86,7 @@ function prep(
         vs = v[:, e .> tol]
         [vs' * regmat * vs for regmat in reg]
     end
-    isone(D) && return Representation(g, preg, χ=χ, reduced=true)
+    isone(D) && return Representation(g, [beautify.(mi) for mi in preg], χ=χ, reduced=true)
     v0 = nothing
     for i = 1:length(class(g))
         rep = preg[class(g,i)[1]]
@@ -102,7 +102,7 @@ function prep(
     end
     isnothing(v0) && error("No nondegenerate eigenvector.")
     vs = krylov_space(preg[2:order(g)], v0, D)
-    m = [vs' * pregmat * vs for pregmat in preg]
+    m = [beautify.(vs' * pregmat * vs) for pregmat in preg]
     Representation(g, m, χ=χ, reduced=true)
 end
 
@@ -110,12 +110,17 @@ export proj_operator
 proj_operator(r::Representation) = sum(r.χ[inclass(r.g, i)] * r[i] for i=1:order(r.g)) |> Array |> Hermitian
 proj_operator(χ::AbstractVector{<:Number}, r::Representation) = sum(χ[inclass(r.g, i)] * r[i] for i=1:order(r.g)) |> Array |> Hermitian
 
-function krylov_space(mats::AbstractVector{<:AbstractMatrix}, v0::AbstractVector, n::Integer; tol::Real=1e-5)
+function krylov_space(
+    mats::AbstractVector{<:AbstractMatrix}, 
+    v0::AbstractVector, 
+    n::Integer; 
+    tol::Real=1e-5
+)
     r, i, nmat = 1, 0, length(mats)
     vs = v0
     while r < n
         i = mod(i, nmat) + 1
-        vs = hcat(mats[i] * vs, vs)
+        vs = hcat(vs, mats[i] * vs)
         U, S = svd(vs)
         pos = S .> tol
         vs = U[:, pos]

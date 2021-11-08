@@ -33,21 +33,21 @@ function burnside(
         all(isone(size(vi, 2)) for vi in v) && break
     end
     for i = 1:NC
-        normalize_chi!(g, v[i], tol=tol)
+        normalize_chi!(g, v[i])
     end
-    vcat(transpose.(v)...) |> sort_chi
+    χ = sort_chi(vcat(transpose.(v)...))
+    beautify.(χ, tol=tol)
 end
 
 function normalize_chi!(
     g::AbstractFiniteGroup, 
-    χ::AbstractArray; 
-    tol::Real=1e-7
+    χ::AbstractArray
 )
     NC = length(χ)
     χ ./= χ[1]
     d2 = order(g) / sum( abs2(χ[j])/mult(g,j) for j=1:NC )
     for i = 1:NC
-        χ[i] *= (abs(χ[i]) < tol) ? 0 : sqrt(d2)/mult(g,i)
+        χ[i] *= sqrt(d2)/mult(g,i)
     end
     χ
 end
@@ -83,7 +83,8 @@ function order_chi(v1::AbstractVector, v2::AbstractVector; tol::Real=1e-7)
             end
         end
     end
-    error("Two vector the same.")
+    println("Warning: two vector the same.")
+    false
 end
 
 function vec_split(
@@ -169,3 +170,17 @@ function class_multab(g::AbstractFiniteGroup)
     h
 end
 
+beautify(a::Integer; tol) = a
+function beautify(a::Real; tol=1e-7)
+    a_int = round(Int64, a)
+    abs(a-a_int) < tol ? a_int : a
+end
+function beautify(a::Number; tol=1e-7)
+    if abs(imag(a)) < tol
+        beautify(real(a))
+    elseif abs(real(a)) < tol
+        1im * beautify(imag(a))
+    else
+        a
+    end
+end
