@@ -74,6 +74,7 @@ function get_irreps(
     irreps
 end
 
+
 function prep(
     g::AbstractFiniteGroup, 
     χ::AbstractVector{<:Number}, 
@@ -82,8 +83,13 @@ function prep(
 )
     D = round(Int64, real(χ[1]))
     preg = begin
-        e, v = proj_operator(χ, reg) |> eigen
-        vs = v[:, e .> tol]
+        vs = if order(g) > 3000
+            eigs(proj_operator(χ, reg), nev=D^2)[2]
+        else
+            e, v = eigen(proj_operator(χ, reg))
+            v[:, e .> 1e-2]
+        end
+        @assert size(vs, 2) == D^2 "Dimension error: exprect $(D^2), get $(size(vs, 2))"
         [vs' * regmat * vs for regmat in reg]
     end
     isone(D) && return Representation(g, [beautify.(mi) for mi in preg], χ=χ, reduced=true)
@@ -104,12 +110,12 @@ function prep(
         # No nondegenerate eigenvector
         error("No nondegenerate eigenvector")
         # If encountered, consider using tensor decomposition.
-        #tensor = Array{promote_type(eltype.(preg)...)}(undef, D^2, order(g), D^2)
-        #for i=1:order(g)
-        #    tensor[:,i,:] .= preg[i]
-        #end
-        #res = block_canonical(tensor, trim=true)
-        #[res[:,i,:] for i=1:order]
+        # tensor = Array{promote_type(eltype.(preg)...)}(undef, D^2, order(g), D^2)
+        # for i=1:order(g)
+        #     tensor[:,i,:] .= preg[i]
+        # end
+        # res = block_canonical(tensor, itr=1000, trim=true)
+        # [res[:,i,:] for i=1:order(g)]
     else
         vs = krylov_space(preg[2:order(g)], v0, D)
         [beautify.(vs' * pregmat * vs) for pregmat in preg]
@@ -118,14 +124,24 @@ function prep(
 end
 
 export proj_operator
-proj_operator(r::Representation) = sum(r.χ[inclass(r.g, i)] * r[i] for i=1:order(r.g)) |> Array |> Hermitian
-proj_operator(χ::AbstractVector{<:Number}, r::Representation) = sum(χ[inclass(r.g, i)] * r[i] for i=1:order(r.g)) |> Array |> Hermitian
+function proj_operator(r::Representation)
+    D = size(r[1],1)
+    m = zeros(eltype(r.χ) <: Real ? Float64 : ComplexF64, D, D)
+    for i = 1:order(r.g)
+        m .+= conj(r.χ[inclass(r.g, i)]) * r[i]
+    end
+    Hermitian(m)
+end
+function proj_operator(χ::AbstractVector{<:Number}, r::Representation)
+    m = sum(conj(χ[inclass(r.g, i)]) * r[i] for i=1:order(r.g))
+    Hermitian(Array(m))
+end
 
 function krylov_space(
     mats::AbstractVector{<:AbstractMatrix}, 
     v0::AbstractVector, 
     n::Integer; 
-    tol::Real=1e-5
+    tol::Real=1e-3
 )
     r, i, nmat = 1, 0, length(mats)
     vs = v0

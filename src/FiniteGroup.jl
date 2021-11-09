@@ -18,6 +18,25 @@ function FiniteGroup(
     FiniteGroup(name, multab, ginv, cls, clsv, mult)
 end
 
+name(g::AbstractFiniteGroup) = g.name
+Base.getindex(g::AbstractFiniteGroup, i, j) = g.multab[i, j]
+Base.inv(g::AbstractFiniteGroup, i) = g.inv[i]
+class(g::AbstractFiniteGroup) = g.cls
+class(g::AbstractFiniteGroup, i) = g.cls[i]
+inclass(g::AbstractFiniteGroup, i) = g.clsv[i]
+mult(g::AbstractFiniteGroup) = g.mult
+mult(g::AbstractFiniteGroup, i) = g.mult[i]
+order(g::AbstractFiniteGroup) = length(g.inv)
+function order(g::AbstractFiniteGroup, i::Integer)
+    ord = 1
+    gi = i
+    while gi ≠ 1
+        ord += 1
+        gi = g[i, gi]
+    end
+    ord
+end
+
 """
     group_inverse(multable::AbstractMatrix{<:Integer})
 
@@ -81,3 +100,21 @@ function collect_group(vec::AbstractVector{<:Integer}, NG::Integer)
     end
     groups
 end
+
+"""
+Check whether a group is legit
+"""
+function check_group(g::FiniteGroup)
+    n = order(g)
+    g.multab[1, :] == 1:n || error("Element 1 not identity")
+    g.multab[:, 1] == 1:n || error("Element 1 not identity")
+    for i=1:n, j=1:n, k=1:n
+        g[g[i,j],k] == g[i,g[j,k]] || error("Elements $i, $j, $k not associative")
+    end
+    for i = 1:n
+        sort(g.multab[i, :]) == 1:n || error("Not a permutation")
+    end
+    true
+end
+
+
