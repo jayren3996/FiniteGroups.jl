@@ -29,7 +29,7 @@ Group order  : 48
 Classes      : 10
 ```
 
-or use the point group name (for example Th group):
+or use the point group name (for example Th group): 
 
 ```julia
 julia> g = pointgroup("Th")
