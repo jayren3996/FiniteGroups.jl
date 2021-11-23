@@ -42,8 +42,9 @@ function check_group(g::FiniteGroup)
 end
 
 ctab = charactertable(g); display(ctab)
-χ = ctab[3,:];
+χ = ctab[2,:];
 coeff = get_coeff(g, χ);
 cg = cover_group(bigger_group(g), coeff, 2);
 reps = irreps(cg);
-[check_proj_coeff(bigger_group(g), rep, coeff, 2) for rep in reps]
+check = [check_proj_coeff(bigger_group(g), rep, coeff, 2) for rep in reps]
+treps = reps[check]
