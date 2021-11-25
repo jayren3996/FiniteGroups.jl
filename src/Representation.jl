@@ -109,24 +109,19 @@ function prep(
     end
     m = if isnothing(v0) 
         # No nondegenerate eigenvector
-        error("No nondegenerate eigenvector")
-        # If encountered, consider using tensor decomposition.
-        """
-        tensor = Array{promote_type(eltype.(preg)...)}(undef, D^2, order(g), D^2)
-        for i=1:order(g)
-            tensor[:,i,:] .= preg[i]
-        end
-        res = TensorKits.block_decomp(tensor, itr=1000)
-        resmats = nothing 
-        for element in res 
-            if size(element, 1) == D
-                resmats = element
-                break
+        min_degen = order(g)
+        element = nothing
+        for i = 1:length(class(g))
+            rep = preg[class(g,i)[1]]
+            e, v = eigen(rep)
+            e_split = spectrum_split(e, tol=tol)
+            degen = minimum(length.(e_split))
+            if degen < min_degen
+                min_degen = degen
+                element = class(g,i)[1]
             end
         end
-        isnothing(resmats) && error("Decomposition failed")
-        [resmats[:,i,:] for i=1:order(g)]
-        """
+        error("No nondegenerate eigenvector. Minimum degeneracy: $min_degen for $element'th element.")
     else
         vs = krylov_space(preg[2:order(g)], v0, D)
         [vs' * pregmat * vs for pregmat in preg]

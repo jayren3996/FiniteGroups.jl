@@ -1,9 +1,9 @@
 # Finite Group Theory Routines
 module FiniteGroups
 
-using LinearAlgebra, DelimitedFiles, SparseArrays, Arpack
-include("TensorKits/TensorKits.jl")
-using .TensorKits
+using LinearAlgebra, SparseArrays
+import Crystalline
+import Crystalline: SymOperation
 
 export name, order, class, inclass, mult
 """
@@ -22,7 +22,7 @@ function Base.display(g::AbstractFiniteGroup)
 end
 
 include("FiniteGroup.jl")
-include("PointGroups/PointGroups.jl")
+include("PointGroups.jl")
 include("Character.jl")
 include("Representation.jl")
 include("ProjReps.jl")
