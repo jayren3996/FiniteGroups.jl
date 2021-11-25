@@ -18,7 +18,7 @@ end
 function bigger_group(g::FiniteGroup)
     n = order(g)
     mt = Matrix{Int64}(undef, 2n, 2n)
-    for i=1:n, j=1:n 
+    for i=1:n, j=1:n
         k = g[i,j]
         mt[i, j] = k
         mt[n+i, j] = n+k
@@ -42,9 +42,12 @@ function check_group(g::FiniteGroup)
 end
 
 ctab = charactertable(g); display(ctab)
-χ = ctab[2,:];
+χ = ctab[4,:];
 coeff = get_coeff(g, χ);
 cg = cover_group(bigger_group(g), coeff, 2);
 reps = irreps(cg);
-check = [check_proj_coeff(bigger_group(g), rep, coeff, 2) for rep in reps]
-treps = reps[check]
+check = [check_proj_coeff(bigger_group(g), rep, coeff, 2, tol=1e-7) for rep in reps]
+
+ct = charactertable(cg)
+reg = regular_rep(cg)
+p = proj_operator(ct[])

@@ -117,15 +117,15 @@ function spectrum_split(vals::AbstractVector{<:Number}; tol::Real=1e-7)
         target = vals[i]
         # Pay attention to the sorting of complex number:
         # a - b im, a + b im, ã - b̃ im, ã + b̃ im
-        tally = 0
+        #tally = 0
         for j = i+1:n
             if abs(vals[j] - target) < tol
                 gvec[j] = NG
-                tally = 0
-            else
-                tally += 1
+            #    tally = 0
+            #else
+            #    tally += 1
             end
-            (tally > 1) && break
+            #(tally > 2) && break
         end
     end
     collect_group(gvec, NG)

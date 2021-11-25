@@ -101,6 +101,7 @@ function prep(
         for ei in e_split
             if length(ei) == D
                 v0 = v[:,ei[1]]
+                #println(i)
                 break
             end
         end
@@ -110,15 +111,25 @@ function prep(
         # No nondegenerate eigenvector
         error("No nondegenerate eigenvector")
         # If encountered, consider using tensor decomposition.
-        # tensor = Array{promote_type(eltype.(preg)...)}(undef, D^2, order(g), D^2)
-        # for i=1:order(g)
-        #     tensor[:,i,:] .= preg[i]
-        # end
-        # res = block_canonical(tensor, itr=1000, trim=true)
-        # [res[:,i,:] for i=1:order(g)]
+        """
+        tensor = Array{promote_type(eltype.(preg)...)}(undef, D^2, order(g), D^2)
+        for i=1:order(g)
+            tensor[:,i,:] .= preg[i]
+        end
+        res = TensorKits.block_decomp(tensor, itr=1000)
+        resmats = nothing 
+        for element in res 
+            if size(element, 1) == D
+                resmats = element
+                break
+            end
+        end
+        isnothing(resmats) && error("Decomposition failed")
+        [resmats[:,i,:] for i=1:order(g)]
+        """
     else
         vs = krylov_space(preg[2:order(g)], v0, D)
-        [beautify.(vs' * pregmat * vs) for pregmat in preg]
+        [vs' * pregmat * vs for pregmat in preg]
     end
     Representation(g, m, χ=χ, reduced=true)
 end

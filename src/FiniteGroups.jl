@@ -1,6 +1,9 @@
 # Finite Group Theory Routines
 module FiniteGroups
+
 using LinearAlgebra, DelimitedFiles, SparseArrays, Arpack
+include("TensorKits/TensorKits.jl")
+using .TensorKits
 
 export name, order, class, inclass, mult
 """
