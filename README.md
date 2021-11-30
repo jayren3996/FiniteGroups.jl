@@ -24,18 +24,18 @@ We can creat a point group using the group number or group name. For example, th
 
 ```julia
 julia> g = pointgroup(32)
-Finite group : Oh
-Group order  : 48
-Classes      : 10
+Point group : Oh
+Group order : 48
+Classes     : 10
 ```
 
 or use the point group name (for example Th group): 
 
 ```julia
 julia> g = pointgroup("Th")
-Finite group : Th
-Group order  : 24
-Classes      : 8
+Point group : Th
+Group order : 24
+Classes     : 8
 ```
 
 In general, given the multiplication table `multab` of the group, we can create the group object using the command:

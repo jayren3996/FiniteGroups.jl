@@ -3,7 +3,7 @@ using .FiniteGroups, LinearAlgebra, Test
 
 g = pointgroup("Oh")
 
-function get_coeff(g::FiniteGroup, χ)
+function get_coeff(g, χ)
     n = order(g)
     ct = Matrix{Int64}(undef, 2n, 2n)
     ct[1:2n,1:n] .= 0
@@ -15,7 +15,7 @@ function get_coeff(g::FiniteGroup, χ)
     ct
 end
 
-function bigger_group(g::FiniteGroup)
+function bigger_group(g)
     n = order(g)
     mt = Matrix{Int64}(undef, 2n, 2n)
     for i=1:n, j=1:n
@@ -28,7 +28,7 @@ function bigger_group(g::FiniteGroup)
     FiniteGroup(mt)
 end
 
-function check_group(g::FiniteGroup)
+function check_group(g)
     n = order(g)
     g.multab[1, :] = 1:n
     g.multab[:, 1] = 1:n
@@ -44,6 +44,8 @@ end
 ctab = charactertable(g); display(ctab)
 χ = ctab[4,:];
 coeff = get_coeff(g, χ);
+reps = proj_reps(biggergroup(g), coeff, 2)
+"""
 cg = cover_group(bigger_group(g), coeff, 2);
 reps = irreps(cg);
 check = [check_proj_coeff(bigger_group(g), rep, coeff, 2, tol=1e-7) for rep in reps]
@@ -51,3 +53,4 @@ check = [check_proj_coeff(bigger_group(g), rep, coeff, 2, tol=1e-7) for rep in r
 ct = charactertable(cg)
 reg = regular_rep(cg)
 p = proj_operator(ct[])
+"""

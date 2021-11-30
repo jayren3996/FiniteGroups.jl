@@ -35,8 +35,8 @@ function burnside(
     for i = 1:NC
         normalize_chi!(g, v[i])
     end
-    χ = sort_chi(vcat(transpose.(v)...))
-    beautify.(χ, tol=tol)
+    χ = beautify.(vcat(transpose.(v)...), tol=tol)
+    sort_chi(χ)
 end
 
 function normalize_chi!(

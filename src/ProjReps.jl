@@ -1,9 +1,6 @@
-
-
-
 export cover_group
 function cover_group(
-    g::FiniteGroup, 
+    g::AbstractFiniteGroup, 
     coeff::AbstractMatrix{<:Integer}, 
     p::Integer
 )
@@ -24,7 +21,7 @@ end
 
 export check_proj_coeff
 function check_proj_coeff(
-    g::FiniteGroup, 
+    g::AbstractFiniteGroup, 
     r::Representation,
     coeff::AbstractMatrix{<:Integer}, 
     p::Integer;
@@ -37,4 +34,17 @@ function check_proj_coeff(
         norm(err) > tol && (return false)
     end
     true
+end
+
+export proj_reps
+function proj_reps(
+    g::AbstractFiniteGroup, 
+    coeff::AbstractMatrix{<:Integer}, 
+    p::Integer;
+    tol::Real=1e-7
+)
+    cg = cover_group(g, coeff, p)
+    reps = irreps(cg)
+    check = [check_proj_coeff(g, rep, coeff, p, tol=tol) for rep in reps]
+    [reps[i][1:order(g)] for i=1:length(reps) if check[i]]
 end

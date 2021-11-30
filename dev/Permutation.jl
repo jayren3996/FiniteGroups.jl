@@ -161,5 +161,6 @@ b = cycles((1,2,3,4,5,6))
 res = generate_group([e,a,b]);
 g = FiniteGroup(res[1])
 ct = charactertable(g)
-reg = regular_rep(g)
-res = FiniteGroups.prep(g, ct[11,:], reg);
+#reg = regular_rep(g)
+#res = FiniteGroups.prep(g, ct[11,:], reg);
+
