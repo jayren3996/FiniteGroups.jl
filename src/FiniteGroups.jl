@@ -26,7 +26,7 @@ include("PointGroups.jl")
 include("Character.jl")
 include("Representation.jl")
 include("ProjReps.jl")
-
+include("Permutation.jl")
 
 
 end

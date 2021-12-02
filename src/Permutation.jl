@@ -1,6 +1,3 @@
-include("$(@__DIR__)/../src/FiniteGroups.jl")
-using .FiniteGroups, LinearAlgebra
-import Base: *
 struct Permutation{T <: Integer}
     M::Matrix{T}
     function Permutation(M::AbstractMatrix{<:Integer})
@@ -30,6 +27,7 @@ Base.display(p::Permutation) = println(string(p))
 Base.isequal(p1::Permutation, p2::Permutation) = isequal(p1.M, p2.M)
 Base.isless(p1::Permutation, p2::Permutation) = isless(reshape(p1.M, :), reshape(p2.M, :))
 
+export permutation
 function permutation(M::AbstractMatrix{<:Integer})
     p = sortperm(view(M, :, 1))
     M = M[p, 1:2]
@@ -39,6 +37,7 @@ function permutation(M::AbstractMatrix{<:Integer})
     Permutation(Array(M[row, :]))
 end
 
+export cycles
 function cycles(cyc::Union{AbstractVector{<:Integer}, Tuple}...)
     n = sum(length(c) for c in cyc)
     iszero(n) && (return Permutation(zeros(Int64, 0, 2)))
@@ -54,6 +53,7 @@ function cycles(cyc::Union{AbstractVector{<:Integer}, Tuple}...)
     permutation(M)
 end
 
+export permutation
 function tocycles(p::Permutation)
     cyc = []
     ind = p.M[:, 1]
@@ -97,6 +97,7 @@ function _get_position!(eles, i, j)
     end
 end
 
+export generate_group
 function generate_group(gens::AbstractVector)
     ng = length(gens)
     eles = [gen for gen in gens]
@@ -153,14 +154,3 @@ function delete_duplicate!(v)
     end
     v
 end
-
-
-e = cycles(())
-a = cycles((1,2))
-b = cycles((1,2,3,4,5,6))
-res = generate_group([e,a,b]);
-g = FiniteGroup(res[1])
-ct = charactertable(g)
-#reg = regular_rep(g)
-#res = FiniteGroups.prep(g, ct[11,:], reg);
-

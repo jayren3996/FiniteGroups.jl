@@ -41,7 +41,16 @@ Classes     : 8
 In general, given the multiplication table `multab` of the group, we can create the group object using the command:
 
 ```julia
-g = finitegroup(multab)
+# Multiplication table of point group D3:
+multab = [ 
+	1  2  3  4  5  6
+	2  3  1  6  4  5
+ 	3  1  2  5  6  4
+ 	4  5  6  1  2  3
+ 	5  6  4  3  1  2
+ 	6  4  5  2  3  1
+]
+g = FiniteGroup(multab)
 ```
 
 ### Character Table
@@ -75,59 +84,5 @@ We can also compute all irreducible representations of a finite group `g`, using
 
 ```julia
 representations = irreps(g)
-```
-
-For example, consider the group D4:
-
-```julia
-g = pointgroup("D4")
-representations = irreps(g)
-```
-
-The result is a 5-element vector, of type `Representation`. The group D4 has 4 1-d irreducible representations and one 2-d irreducible representation. We can display the 2-d one by:
-
-```julia
-julia> representations[5]
-2-d irreducible representation of D4: 
-
-Element 1:
-2×2 Matrix{Int64}:
- 1  0
- 0  1
-
-Element 2:
-2×2 Matrix{Number}:
- 0-1im   0
-  0     0+1im
-
-Element 3:
-2×2 Matrix{Int64}:
- -1   0
-  0  -1
-
-Element 4:
-2×2 Matrix{Number}:
- 0+1im   0
-  0     0-1im
-
-Element 5:
-2×2 Matrix{Int64}:
- 0  1
- 1  0
-
-Element 6:
-2×2 Matrix{Number}:
-  0     0-1im
- 0+1im   0
-
-Element 7:
-2×2 Matrix{Int64}:
-  0  -1
- -1   0
-
-Element 8:
-2×2 Matrix{Number}:
-  0     0+1im
- 0-1im   0
 ```
 

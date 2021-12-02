@@ -22,7 +22,7 @@ end
 export check_proj_coeff
 function check_proj_coeff(
     g::AbstractFiniteGroup, 
-    r::Representation,
+    r::AbstractVector{<:AbstractMatrix},
     coeff::AbstractMatrix{<:Integer}, 
     p::Integer;
     tol::Real=1e-7

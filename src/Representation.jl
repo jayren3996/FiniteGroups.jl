@@ -1,145 +1,87 @@
-struct Representation{G<:AbstractFiniteGroup, T<:Number, M<:AbstractVector{<:AbstractMatrix}}
-    g::G
-    m::M
-    χ::Vector{T}
-    reduced::Bool
-end
-
-function Representation(
-    g::AbstractFiniteGroup,
-    m::AbstractVector{<:AbstractMatrix};
-    χ::Union{Nothing, AbstractVector{<:Number}}=nothing,
-    reduced::Union{Nothing, Bool}=nothing
-)
-    vχ = if isnothing(χ)
-        [tr(m[i]) for i = 1:length(m)]
-    else
-        Array(χ)
-    end
-    isnothing(reduced) && ( reduced = abs(sum(χ)-order(g)) < 1e-7 )
-    Representation(g, m, vχ, reduced)
-end
-
-function Base.display(r::Representation)
-    println("$(size(r.m[1], 1))-d $(r.reduced ? "irreducible" : "reducible") representation of $(name(r.g)): ")
-    for i = 1:length(r.m)
-        println("\nElement $i:")
-        display(r.m[i])
-    end
-end
-
-Base.getindex(r::Representation, i) = r.m[i]
-Base.length(r::Representation) = length(r.m)
-Base.iterate(r::Representation) = (r[1], 1)
-Base.iterate(r::Representation, i::Integer) = i == length(r.m) ? nothing : (r[i+1], i+1)
-
-
-@inline character(r::Representation) = r.χ
-
-export regular_rep
-"""
-    regular_rep(multab::AbstractMatrix{<:Integer})
-
-Return regular representation:
-"""
-function regular_rep(g::AbstractFiniteGroup)
-    n = order(g)
-    m = [sparse([g[i,j] for j=1:n], 1:n, fill(1, n), n, n) for i=1:n]
-    reduced = order(g) == 1
-    Representation(g, m, reduced=reduced)
-end
-
 export irreps
-function irreps(
-    g::AbstractFiniteGroup;
-    χ::Union{Nothing, AbstractMatrix}=nothing,
-    method::String="Burnside"
-)
-    isnothing(χ) && ( χ = charactertable(g, method=method) )
-    reg = regular_rep(g)
-    get_irreps(g, χ, reg)
-end
-
 """
-    get_irreps(g::FiniteGroup, χ::AbstractMatrix, reg::AbstractArray{<:Integer, 3})
+    irreps(g::FiniteGroup; χ::Union{Nothing, AbstractMatrix}=nothing,)
 
 Get the irreducible representations.
 """
-function get_irreps(
-    g::AbstractFiniteGroup, 
-    χ::AbstractMatrix, 
-    reg::Representation
+function irreps(
+    g::AbstractFiniteGroup;
+    χ::Union{Nothing, AbstractMatrix}=nothing
 )
-    irreps = [prep(g, χ[i, :], reg) for i = 1:size(χ, 2)]
-    irreps
+    isnothing(χ) && ( χ = charactertable(g) )
+    reg = regular_rep(g)
+    [prep(g, χ[i, :], reg) for i = 1:size(χ, 1)]
 end
 
-
+#-------------------------------------------------------------------------------
+# Project out irreps from regular representation
+#-------------------------------------------------------------------------------
 function prep(
     g::AbstractFiniteGroup, 
     χ::AbstractVector{<:Number}, 
-    reg::Representation;
+    reg::AbstractVector{<:AbstractMatrix};
     tol::Real=1e-7
 )
     D = round(Int64, real(χ[1]))
     preg = begin
-        vs = if order(g) > 3000
-            eigs(proj_operator(χ, reg), nev=D^2)[2]
-        else
-            e, v = eigen(proj_operator(χ, reg))
+        vs = begin
+            e, v = proj_operator(reg, χ, g) |> eigen
             v[:, e .> 1e-2]
         end
         @assert size(vs, 2) == D^2 "Dimension error: exprect $(D^2), get $(size(vs, 2))"
         [vs' * regmat * vs for regmat in reg]
     end
-    isone(D) && return Representation(g, [beautify.(mi) for mi in preg], χ=χ, reduced=true)
-    v0 = nothing
-    for i = 1:length(class(g))
-        rep = preg[class(g,i)[1]]
-        e, v = eigen(rep)
+    isone(D) && return [beautify.(mi) for mi in preg]
+    rep_gen = (preg[cls[1]] for cls in class(g))
+    v0 = find_least_degen(rep_gen, D, tol=tol)
+    vs = krylov_space(preg[2:order(g)], v0, D)
+    [vs' * pregmat * vs for pregmat in preg]
+end
+
+function find_least_degen(rep, D::Integer; dim::Integer=D^2, tol::Real=1e-7)
+    min_degen = dim
+    min_vs = nothing
+    for mat in rep
+        e, v = eigen(mat)
         e_split = spectrum_split(e, tol=tol)
         for ei in e_split
             if length(ei) == D
-                v0 = v[:,ei[1]]
-                #println(i)
-                break
+                return v[:,ei[1]]
+            elseif length(ei) < min_degen
+                min_degen = length(ei)
+                min_vs = v[:, ei]
             end
         end
-        isnothing(v0) || break
     end
-    m = if isnothing(v0) 
-        # No nondegenerate eigenvector
-        min_degen = order(g)
-        element = nothing
-        for i = 1:length(class(g))
-            rep = preg[class(g,i)[1]]
-            e, v = eigen(rep)
-            e_split = spectrum_split(e, tol=tol)
-            degen = minimum(length.(e_split))
-            if degen < min_degen
-                min_degen = degen
-                element = class(g,i)[1]
-            end
-        end
-        error("No nondegenerate eigenvector. Minimum degeneracy: $min_degen for $element'th element.")
-    else
-        vs = krylov_space(preg[2:order(g)], v0, D)
-        [vs' * pregmat * vs for pregmat in preg]
-    end
-    Representation(g, m, χ=χ, reduced=true)
+    # If single representation matrix is not enough to get rid of ther degeneracy,
+    # we then calculate the rep. mats. restriceted to the degenerate space.
+    min_vs = svd(min_vs).U
+    rep2 = (min_vs' * mat * min_vs for mat in rep)
+    min_vs * find_least_degen(rep2, D, dim=min_degen, tol=tol)
+end
+
+
+#-------------------------------------------------------------------------------
+# Helpers
+#-------------------------------------------------------------------------------
+export regular_rep
+"""
+    regular_rep(multab::AbstractMatrix{<:Integer})
+
+Return regular representation.
+"""
+function regular_rep(g::AbstractFiniteGroup)
+    n = order(g)
+    [sparse([g[i,j] for j=1:n], 1:n, fill(1, n), n, n) for i=1:n]
 end
 
 export proj_operator
-function proj_operator(r::Representation)
-    D = size(r[1],1)
-    m = zeros(eltype(r.χ) <: Real ? Float64 : ComplexF64, D, D)
-    for i = 1:order(r.g)
-        m .+= conj(r.χ[inclass(r.g, i)]) * r[i]
-    end
-    Hermitian(m)
-end
-function proj_operator(χ::AbstractVector{<:Number}, r::Representation)
-    m = sum(conj(χ[inclass(r.g, i)]) * r[i] for i=1:order(r.g))
+function proj_operator(
+    r::AbstractVector{<:AbstractMatrix}, 
+    χ::AbstractVector{<:Number},
+    g::AbstractFiniteGroup
+)
+    m = sum(conj(χ[inclass(g, i)]) * r[i] for i=1:order(g))
     Hermitian(Array(m))
 end
 

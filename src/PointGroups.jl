@@ -44,6 +44,10 @@ end
 
 pointgroup(s::String) = findfirst(x->x==s, PointGroups) |> pointgroup
 
-export operation
+export operation, operation_name, matrix
 operation(g::PointGroup) = g.operations
 operation(g::PointGroup, i) = g.operations[i]
+operation_name(g::PointGroup) = string.(g.operations)
+operation_name(g::PointGroup, i::Integer) = string(g.operations[i])
+matrix(g::PointGroup, i::Integer) = g.operations[i].rotation |> Array
+matrix(g::PointGroup) = [matrix(g, i) for i=1:order(g)]
