@@ -1,18 +1,20 @@
 export irreps
 """
-    irreps(g::FiniteGroup; χ::Union{Nothing, AbstractMatrix}=nothing,)
+    irreps(g::FiniteGroup; χ::AbstractVector)
 
 Get the irreducible representations.
 """
-function irreps(
-    g::AbstractFiniteGroup;
-    χ::Union{Nothing, AbstractMatrix}=nothing
-)
-    isnothing(χ) && ( χ = charactertable(g) )
+function irreps(g::AbstractFiniteGroup, χ::AbstractVector)
+    reg = regular_rep(g)
+    prep(g, χ, reg)
+end
+
+function irreps(g::AbstractFiniteGroup, χ::AbstractMatrix)
     reg = regular_rep(g)
     [prep(g, χ[i, :], reg) for i = 1:size(χ, 1)]
 end
 
+irreps(g::AbstractFiniteGroup) = irreps(g, charactertable(g))
 #-------------------------------------------------------------------------------
 # Project out irreps from regular representation
 #-------------------------------------------------------------------------------
