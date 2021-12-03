@@ -8,6 +8,37 @@ struct Permutation{T <: Integer}
     end
 end
 
+struct PermutationGroup <: AbstractFiniteGroup
+    name::String
+    multab::Matrix{Int64}
+    inv::Vector{Int64}
+    cls::Vector{Vector{Int64}}
+    clsv::Vector{Int64}
+    mult::Vector{Int64}
+    operations::Vector{Permutation}
+end
+
+function Base.display(g::PointGroup)
+    println("Permutation group : $(name(g))")
+    println("Group order       : $(order(g))")
+    println("Classes           : $(length(class(g)))")
+end
+
+operation(g::PermutationGroup) = g.operations
+operation(g::PermutationGroup, i) = g.operations[i]
+
+export permutationgroup
+function permutationgroup(gens::AbstractVector{<:Permutation}; name::String="Unnamed Group")
+    multab, eles = generate_group(gens)
+    ginv = group_inverse(multab)
+    cls, clsv = conjugate_class(multab, ginv)
+    mult = length.(cls)
+    PermutationGroup(name, multab, ginv, cls, clsv, mult, eles)
+end
+
+permutationgroup(n::Integer) = permutationgroup([cycles(1:2), cycles(1:n)], name="S$n")
+
+
 function Base.string(p::Permutation)
     cyc = tocycles(p)
     str = "Cycle: "
@@ -86,33 +117,27 @@ function *(p1::Permutation, p2::Permutation)
     Permutation([i j])
 end
 
-function _get_position!(eles, i, j)
-    ek = eles[i] * eles[j]
-    k = findfirst(x -> isequal(x, ek), eles)
-    if isnothing(k)
-        push!(eles, ek)
-        length(eles)
-    else
-        k
-    end
-end
-
-export generate_group
 function generate_group(gens::AbstractVector)
-    ng = length(gens)
-    eles = [gen for gen in gens]
-    tb = [_get_position!(eles, i, j) for i=1:ng, j=1:ng]
-    N1, N2 = ng, length(eles)
-    while N1 < N2
-        tb2 = [_get_position!(eles, i, j) for i=1:N1, j=N1+1:N2]
-        tb3 = [_get_position!(eles, i, j) for i=N1+1:N2, j=1:N2]
-        tb = [tb tb2; tb3]
-        N1 = N2
-        N2 = length(eles)
+    N = 0
+    eles = gens 
+    while length(eles) > N
+        N = length(eles)
+        eles = vcat(eles, ([gen * ele for ele in eles] for gen in gens)...) |> sort
+        delete_duplicate!(eles)
+    end
+    tb = Matrix{Int64}(undef, N, N)
+    Threads.@threads for i = 1:N 
+        for j=1:N
+            _, k = binary_search(eles, eles[i] * eles[j])
+            tb[i, j] = k
+        end
     end
     tb, eles
 end
 
+#-------------------------------------------------------------------------------
+# Helpers
+#-------------------------------------------------------------------------------
 """
     binary_search
 """
@@ -122,9 +147,9 @@ function binary_search(list::AbstractVector, i)
         return false, 1
     elseif i > list[r]
         return false, r+1
-    elseif i == list[l]
+    elseif isequal(i, list[l])
         return true, l
-    elseif i == list[r]
+    elseif isequal(i, list[r])
         return true, r
     end
     while true
@@ -145,7 +170,7 @@ function delete_duplicate!(v)
     N = length(v)
     i = 2
     while i<=N
-        if v[i] == v[i-1]
+        if isequal(v[i], v[i-1])
             deleteat!(v, i)
             N -= 1
         else

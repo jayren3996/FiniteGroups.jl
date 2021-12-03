@@ -5,6 +5,9 @@ export irreps
 Get the irreducible representations.
 """
 function irreps(g::AbstractFiniteGroup, χ::AbstractVector)
+    if isone(round(Int64, real(χ[1])))
+        return [χ[inclass(g, i)] * ones(1,1) for i = 1:order(g)]
+    end
     reg = regular_rep(g)
     prep(g, χ, reg)
 end
@@ -25,6 +28,7 @@ function prep(
     tol::Real=1e-7
 )
     D = round(Int64, real(χ[1]))
+    isone(D) && return [χ[inclass(g, i)] * ones(1,1) for i = 1:order(g)]
     vs = begin
         e, v = proj_operator(reg, χ, g) |> Hermitian |> eigen
         v[:, e .> 1e-2]
@@ -32,7 +36,10 @@ function prep(
     preg = [vs' * reg[cls[1]] * vs for cls in class(g)]
     v0 = find_least_degen(preg, D, tol=tol)
     P = krylov_space(reg[2:order(g)], vs*v0, D)
-    rep = [P' * mat * P for mat in reg]
+    rep = Vector{Matrix{eltype(P)}}(undef, order(g))
+    Threads.@threads for i = 1:order(g)
+        rep[i] = P' * reg[i] * P
+    end
     isone(check_real_rep(g, χ)) && return real_rep(rep)
     rep
 end
@@ -85,7 +92,11 @@ function real_rep(r::AbstractVector{<:AbstractMatrix})
     sval = map(x -> sqrt(x/abs(x)), val)
     W = vec * Diagonal(sval) * vec'
     Wi = inv(W)
-    [real.(Wi * m * W) for m in r]
+    rep = Vector{Matrix{Float64}}(undef, length(r))
+    Threads.@threads for i = 1:length(r)
+        rep[i] = real.(Wi * m * W)
+    end
+    rep
 end
 
 export regular_rep
@@ -138,9 +149,11 @@ end
 Check whether a group is legit
 """
 function check_rep(g::AbstractFiniteGroup, r; tol=1e-7)
-    for k = 1:order(g), l = 1:order(g)
-        m = g[k, l]
-        norm(r[m] - r[k] * r[l]) > tol && return false
+    Threads.@threads for k = 1:order(g) 
+        for l = 1:order(g)
+            m = g[k, l]
+            norm(r[m] - r[k] * r[l]) > tol && return false
+        end
     end
     true
 end

@@ -102,17 +102,17 @@ function collect_group(vec::AbstractVector{<:Integer}, NG::Integer)
 end
 
 """
-Check whether a group is legit
+Check whether a multiplication table
 """
-function check_group(g::FiniteGroup)
-    n = order(g)
-    g.multab[1, :] == 1:n || error("Element 1 not identity")
-    g.multab[:, 1] == 1:n || error("Element 1 not identity")
+function check_group(multab)
+    n = size(multab, 1)
+    multab[1, :] == 1:n || error("Element 1 not identity")
+    multab[:, 1] == 1:n || error("Element 1 not identity")
     for i=1:n, j=1:n, k=1:n
-        g[g[i,j],k] == g[i,g[j,k]] || error("Elements $i, $j, $k not associative")
+        multab[multab[i,j],k] == multab[i,multab[j,k]] || error("Elements $i, $j, $k not associative")
     end
     for i = 1:n
-        sort(g.multab[i, :]) == 1:n || error("Not a permutation")
+        sort(multab[i, :]) == 1:n || error("Not a permutation")
     end
     true
 end
