@@ -23,19 +23,16 @@ function prep(
     tol::Real=1e-7
 )
     D = round(Int64, real(χ[1]))
-    preg = begin
-        vs = begin
-            e, v = proj_operator(reg, χ, g) |> eigen
-            v[:, e .> 1e-2]
-        end
-        @assert size(vs, 2) == D^2 "Dimension error: exprect $(D^2), get $(size(vs, 2))"
-        [vs' * regmat * vs for regmat in reg]
+    vs = begin
+        e, v = proj_operator(reg, χ, g) |> Hermitian |> eigen
+        v[:, e .> 1e-2]
     end
-    isone(D) && return [beautify.(mi) for mi in preg]
-    rep_gen = (preg[cls[1]] for cls in class(g))
-    v0 = find_least_degen(rep_gen, D, tol=tol)
-    vs = krylov_space(preg[2:order(g)], v0, D)
-    [vs' * pregmat * vs for pregmat in preg]
+    preg = [vs' * reg[cls[1]] * vs for cls in class(g)]
+    v0 = find_least_degen(preg, D, tol=tol)
+    P = krylov_space(reg[2:order(g)], vs*v0, D)
+    rep = [P' * mat * P for mat in reg]
+    isone(check_real_rep(g, χ)) && return real_rep(rep)
+    rep
 end
 
 function find_least_degen(rep, D::Integer; dim::Integer=D^2, tol::Real=1e-7)
@@ -60,10 +57,35 @@ function find_least_degen(rep, D::Integer; dim::Integer=D^2, tol::Real=1e-7)
     min_vs * find_least_degen(rep2, D, dim=min_degen, tol=tol)
 end
 
-
 #-------------------------------------------------------------------------------
 # Helpers
 #-------------------------------------------------------------------------------
+export check_real_rep
+function check_real_rep(g::AbstractFiniteGroup, χ)
+    n = sum(χ[inclass(g, g[i,i])] for i=1:order(g)) / order(g)
+    if abs(n-1) < 1e-7
+        1
+    elseif abs(n+1) < 1e-7
+        -1
+    elseif abs(n) < 1e-7
+        0
+    else
+        error("Sum of χ(g²) = $n ≠ ±g,0")
+    end
+end
+
+export real_rep
+function real_rep(r::AbstractVector{<:AbstractMatrix})
+    R = sum(kron(m, m) for m in r)
+    e, v = eigen(R)
+    U = reshape(v[:, end], size(r[1]))
+    val, vec = eigen(U)
+    sval = map(x -> sqrt(x/abs(x)), val)
+    W = vec * Diagonal(sval) * vec'
+    Wi = inv(W)
+    [real.(Wi * m * W) for m in r]
+end
+
 export regular_rep
 """
     regular_rep(multab::AbstractMatrix{<:Integer})
@@ -81,8 +103,12 @@ function proj_operator(
     χ::AbstractVector{<:Number},
     g::AbstractFiniteGroup
 )
-    m = sum(conj(χ[inclass(g, i)]) * r[i] for i=1:order(g))
-    Hermitian(Array(m))
+    dtype = promote_type(eltype(χ), eltype.(r)...)
+    m = zeros(dtype, size(r[1]))
+    for i = 1:order(g)
+        m += conj(χ[inclass(g, i)]) * r[i]
+    end
+    m
 end
 
 function krylov_space(
@@ -91,6 +117,7 @@ function krylov_space(
     n::Integer; 
     tol::Real=1e-3
 )
+    isone(n) && return reshape(v0, :, 1)
     r, i, nmat = 1, 0, length(mats)
     vs = v0
     while r < n
@@ -103,4 +130,15 @@ function krylov_space(
     end
     @assert r == n "Dimension of Krylov space not match: expect d = $n, get d = $r"
     vs
+end
+
+"""
+Check whether a group is legit
+"""
+function check_rep(g::AbstractFiniteGroup, r; tol=1e-7)
+    for k = 1:order(g), l = 1:order(g)
+        m = g[k, l]
+        norm(r[m] - r[k] * r[l]) > tol && return false
+    end
+    true
 end
