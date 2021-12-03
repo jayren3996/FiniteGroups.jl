@@ -94,7 +94,7 @@ function real_rep(r::AbstractVector{<:AbstractMatrix})
     Wi = inv(W)
     rep = Vector{Matrix{Float64}}(undef, length(r))
     Threads.@threads for i = 1:length(r)
-        rep[i] = real.(Wi * m * W)
+        rep[i] = real.(Wi * r[i] * W)
     end
     rep
 end
