@@ -87,10 +87,10 @@ export real_rep
 function real_rep(r::AbstractVector{<:AbstractMatrix})
     R = sum(kron(m, m) for m in r)
     e, v = eigen(R)
-    U = reshape(v[:, end], size(r[1]))
+    U = reshape(v[:, end], size(r[1])) * sqrt(size(r[1], 1))
     val, vec = eigen(U)
-    sval = map(x -> sqrt(x/abs(x)), val)
-    W = vec * Diagonal(sval) * vec'
+    sval = sqrt.(val)
+    W = vec * Diagonal(sval) * inv(vec)
     Wi = inv(W)
     rep = Vector{Matrix{Float64}}(undef, length(r))
     Threads.@threads for i = 1:length(r)

@@ -126,7 +126,7 @@ function generate_group(gens::AbstractVector)
         delete_duplicate!(eles)
     end
     tb = Matrix{Int64}(undef, N, N)
-    Threads.@threads for i = 1:N 
+    @threads for i = 1:N 
         for j=1:N
             _, k = binary_search(eles, eles[i] * eles[j])
             tb[i, j] = k

@@ -5,7 +5,7 @@ using .FiniteGroups, LinearAlgebra, Test
 for gi = 1:32
     g = pointgroup(gi)
     χ = charactertable(g, method="Burnside")
-    R = irreps(g, χ=χ)
+    R = irreps(g, χ)
     @testset verbose = true "$(name(g)) Test" begin
         @testset "Character" begin
             # Test dimensions
@@ -21,9 +21,10 @@ for gi = 1:32
             for j = 1:size(χ, 1)
                 rep = R[j]
                 chi = χ[j, :]
-                # check trace
+                
                 for k = 1:order(g)
-                    @test chi[inclass(g, k)] ≈ tr(rep[k]) atol=1e-7
+                    @test chi[inclass(g, k)] ≈ tr(rep[k]) atol=1e-7     # check trace
+                    @test norm(rep[k] * rep[k]' - I) < 1e-7             # check unitary
                 end
                 #test multiplication
                 for k = 1:order(g), l = 1:order(g)

@@ -1,7 +1,7 @@
 # Finite Group Theory Routines
 module FiniteGroups
 
-using LinearAlgebra, SparseArrays
+using LinearAlgebra, SparseArrays, Base.Threads
 import Crystalline
 import Crystalline: SymOperation
 import Base.:*
