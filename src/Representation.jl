@@ -89,9 +89,20 @@ function real_rep(r::AbstractVector{<:AbstractMatrix})
     e, v = eigen(R)
     U = reshape(v[:, end], size(r[1])) * sqrt(size(r[1], 1))
     val, vec = eigen(U)
+    # Require the eigen vector of a unitary matrix to be unitary.
+    # Here we enforce this by orthogonalized the vectors in the degenerate space.
+    for s in spectrum_split(val)
+        length(s) == 1 && continue
+        vec[:, s] .= svd(vec[:, s]).U
+    end
+    if norm(vec * vec'-I) > 1e-10
+        println("Unitary matrix:")
+        display(U)
+        println("Not right")
+    end
     sval = sqrt.(val)
-    W = vec * Diagonal(sval) * inv(vec)
-    Wi = inv(W)
+    W = vec * Diagonal(sval) * vec'
+    Wi = W'
     rep = Vector{Matrix{Float64}}(undef, length(r))
     Threads.@threads for i = 1:length(r)
         rep[i] = real.(Wi * r[i] * W)
