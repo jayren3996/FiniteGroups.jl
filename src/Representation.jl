@@ -19,6 +19,7 @@ end
 
 irreps(g::AbstractFiniteGroup) = irreps(g, charactertable(g))
 #-------------------------------------------------------------------------------
+export realirreps
 """
     realirreps(g::AbstractFiniteGroup)
 
