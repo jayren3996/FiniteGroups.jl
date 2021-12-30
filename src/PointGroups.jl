@@ -36,13 +36,13 @@ function pointgroup(i::Integer)
 end
 pointgroup(s::String) = pointgroup(PointGroupDict[s])
 
-export groupindex, operation, matrix, repnames
+export groupindex, operation, matrix, repname
 groupindex(g::PointGroup) = PointGroupDict[name(g)]
 operation(g::PointGroup) = g.operations
 operation(g::PointGroup, i) = g.operations[i]
 matrix(g::PointGroup) = RotationMatrices[groupindex(g)]
-matrix(g::PointGroup, i::Integer) = RotationMatrices[groupindex(g)][i]
-function repnames(g::PointGroup, i::Integer, convention::Integer=3)
+matrix(g::PointGroup, i) = RotationMatrices[groupindex(g)][i]
+function repname(g::PointGroup, i, convention::Integer=3)
     if convention == 3
         RepresentationNames3[groupindex(g)][i]
     elseif convention == 1
