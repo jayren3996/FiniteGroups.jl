@@ -100,7 +100,7 @@ function real_rep(r::AbstractVector{<:AbstractMatrix})
         display(U)
         println("Not right")
     end
-    sval = sqrt.(val)
+    sval = @. sqrt(Complex(val))
     W = vec * Diagonal(sval) * vec'
     Wi = W'
     rep = Vector{Matrix{Float64}}(undef, length(r))
