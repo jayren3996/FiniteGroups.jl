@@ -2,8 +2,6 @@
 module FiniteGroups
 
 using LinearAlgebra, SparseArrays, Base.Threads
-import Crystalline
-import Crystalline: SymOperation
 import Base.:*
 export name, order, class, inclass, mult
 """
