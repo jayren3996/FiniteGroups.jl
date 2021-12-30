@@ -19,6 +19,42 @@ end
 
 irreps(g::AbstractFiniteGroup) = irreps(g, charactertable(g))
 #-------------------------------------------------------------------------------
+"""
+    realirreps(g::AbstractFiniteGroup)
+
+Get all irreducible real representations of g.
+"""
+function realirreps(g::AbstractFiniteGroup)
+    ct = charactertable(g)
+    rreps = Vector{Matrix{Float64}}[]
+    row = fill(true, size(ct, 1))
+    while any(row)
+        r = findfirst(row)
+        row[r] = false
+        rep = irreps(g, ct[r, :])
+        if promote_type(typeof.(ct[r, :])...) <: Real
+            push!(rreps, rep)
+        else
+            χc = conj(ct[r, :])
+            for i = 1:size(ct, 1)
+                (norm(ct[i, :] .- χc) < 1e-7) && (row[i] = false)
+            end
+            rrep = [[real(m) imag(m); -imag(m) real(m)] for m in rep]
+            push!(rreps, rrep)
+        end
+    end
+    rreps
+end
+
+function realirreps(g::AbstractFiniteGroup, χ::AbstractVector)
+    rep = irreps(g, χ)
+    if promote_type(typeof.(χ)...) <: Real
+        rep
+    else
+        [[real(m) imag(m); -imag(m) real(m)] for m in rep]
+    end
+end
+#-------------------------------------------------------------------------------
 # Project out irreps from regular representation
 #-------------------------------------------------------------------------------
 function prep(
@@ -43,7 +79,7 @@ function prep(
     isone(check_real_rep(g, χ)) && return real_rep(rep)
     rep
 end
-
+#-------------------------------------------------------------------------------
 function find_least_degen(rep, D::Integer; dim::Integer=D^2, tol::Real=1e-7)
     min_degen = dim
     min_vs = nothing
@@ -82,7 +118,7 @@ function check_real_rep(g::AbstractFiniteGroup, χ)
         error("Sum of χ(g²) = $n ≠ ±g,0")
     end
 end
-
+#-------------------------------------------------------------------------------
 export real_rep
 function real_rep(r::AbstractVector{<:AbstractMatrix})
     R = sum(kron(m, m) for m in r)
@@ -95,11 +131,11 @@ function real_rep(r::AbstractVector{<:AbstractMatrix})
         length(s) == 1 && continue
         vec[:, s] .= svd(vec[:, s]).U
     end
-    if norm(vec * vec'-I) > 1e-10
-        println("Unitary matrix:")
-        display(U)
-        println("Not right")
-    end
+    #if norm(vec * vec'-I) > 1e-10
+    #    println("Unitary matrix:")
+    #    display(U)
+    #    println("Not right")
+    #end
     sval = sqrt.(val)
     W = vec * Diagonal(sval) * vec'
     Wi = W'
@@ -109,7 +145,7 @@ function real_rep(r::AbstractVector{<:AbstractMatrix})
     end
     rep
 end
-
+#-------------------------------------------------------------------------------
 export regular_rep
 """
     regular_rep(multab::AbstractMatrix{<:Integer})
@@ -120,7 +156,7 @@ function regular_rep(g::AbstractFiniteGroup)
     n = order(g)
     [sparse([g[i,j] for j=1:n], 1:n, fill(1, n), n, n) for i=1:n]
 end
-
+#-------------------------------------------------------------------------------
 export proj_operator
 function proj_operator(
     r::AbstractVector{<:AbstractMatrix}, 
@@ -134,7 +170,7 @@ function proj_operator(
     end
     m
 end
-
+#-------------------------------------------------------------------------------
 function krylov_space(
     mats::AbstractVector{<:AbstractMatrix}, 
     v0::AbstractVector, 
@@ -155,7 +191,32 @@ function krylov_space(
     @assert r == n "Dimension of Krylov space not match: expect d = $n, get d = $r"
     vs
 end
+#-------------------------------------------------------------------------------
+# Helper
+#-------------------------------------------------------------------------------
+export oplus
+function oplus(mat1::AbstractMatrix, mat2::AbstractMatrix, OD::Bool=false)
+    n1, n2 = size(mat1, 1), size(mat2, 1)
+    t = promote_type(eltype(mat1), eltype(mat2))
+    m = zeros(t, n1+n2, n1+n2)
+    if OD
+        m[1:n1, n1+1:n1+n2] .= mat1
+        m[n1+1:n1+n2, 1:n1] .= mat2
+    else
+        m[1:n1, 1:n1] .= mat1
+        m[n1+1:n1+n2, n1+1:n1+n2] .= mat2
+    end
+    m
+end
 
+function oplus(
+    rep1::AbstractVector{<:AbstractMatrix},
+    rep2::AbstractVector{<:AbstractMatrix},
+    OD::Bool=false
+)
+    [oplus(rep1[i], rep2[i], OD) for i=1:length(rep1)]
+end
+#-------------------------------------------------------------------------------
 """
 Check whether a group is legit
 """

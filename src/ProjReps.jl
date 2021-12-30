@@ -1,4 +1,16 @@
 export cover_group
+"""
+    cover_group(g::AbstractFiniteGroup, coeff::AbstractMatrix{<:Integer}, p::Integer)
+
+Construct the cover group of `g`, given the projective coefficient `coeff`. 
+The projective coefficient is unitary and the phase is module p.
+
+Inputs:
+-------
+g     : Finite group.
+coeff : D(gᵢ) * D(gⱼ) = exp(i2π/p * coeff[i,j]) * D(gᵢ⋅gⱼ).
+p     : Module of coefficient.
+"""
 function cover_group(
     g::AbstractFiniteGroup, 
     coeff::AbstractMatrix{<:Integer}, 
@@ -18,7 +30,7 @@ function cover_group(
     end
     FiniteGroup(mt, "Cover Group for $(name(g))")
 end
-
+#-------------------------------------------------------------------------------
 export check_proj_coeff
 function check_proj_coeff(
     g::AbstractFiniteGroup, 
@@ -35,7 +47,7 @@ function check_proj_coeff(
     end
     true
 end
-
+#-------------------------------------------------------------------------------
 export proj_reps
 function proj_reps(
     g::AbstractFiniteGroup, 
