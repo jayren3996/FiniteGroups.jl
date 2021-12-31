@@ -129,28 +129,9 @@ end
 export real_rep
 function real_rep(r::AbstractVector{<:AbstractMatrix})
     R = sum(kron(m, m) for m in r)
-    e, v = eigen(R)
+    _, v = eigen(R)
     U = reshape(v[:, end], size(r[1])) * sqrt(size(r[1], 1))
-    val, vec = eigen(U)
-    # Require the eigen vector of a unitary matrix to be unitary.
-    # Here we enforce this by orthogonalized the vectors in the degenerate space.
-    for s in spectrum_split(val)
-        length(s) == 1 && continue
-        vec[:, s] .= svd(vec[:, s]).U
-    end
-    #if norm(vec * vec'-I) > 1e-10
-    #    println("Unitary matrix:")
-    #    display(U)
-    #    println("Not right")
-    #end
-    sval = @. sqrt(Complex(val))
-    if norm(vec * vec'-I) > 1e-10
-        println("Unitary matrix:")
-        display(U)
-        println("Not right")
-    end
-    sval = @. sqrt(Complex(val))
-    W = vec * Diagonal(sval) * vec'
+    W = unitarysqrt(U)
     Wi = W'
     rep = Vector{Matrix{Float64}}(undef, length(r))
     Threads.@threads for i = 1:length(r)
@@ -204,8 +185,9 @@ function krylov_space(
     @assert r == n "Dimension of Krylov space not match: expect d = $n, get d = $r"
     vs
 end
+
 #-------------------------------------------------------------------------------
-# Helper
+# Misc
 #-------------------------------------------------------------------------------
 export oplus
 function oplus(mat1::AbstractMatrix, mat2::AbstractMatrix, OD::Bool=false)
@@ -242,3 +224,34 @@ function check_rep(g::AbstractFiniteGroup, r; tol=1e-7)
     end
     true
 end
+
+#-------------------------------------------------------------------------------
+# Specific Linear Algebra
+#-------------------------------------------------------------------------------
+"""
+Eigen decomposition of unitary matrix.
+
+The eigen vectors are unitary.
+"""
+function unitaryeigen(U::AbstractMatrix)
+    val, vec = eigen(U)
+    # Require the eigen vector of a unitary matrix to be unitary.
+    # Here we enforce this by orthogonalized the vectors in the degenerate space.
+    for s in spectrum_split(val)
+        isone(length(s)) && continue
+        vec[:, s] .= svd(vec[:, s]).U
+    end
+    val, vec
+end
+
+function unitarysqrt(U::AbstractMatrix)
+    val, vec = unitaryeigen(U)
+    sval = @. sqrt(Complex(val))
+    vec * Diagonal(sval) * vec'
+end
+
+#function realeigen(m::AbstractMatrix{<:Real})
+#    e, v = eigen(m)
+#    eltype(v) <:Real && return e, v
+#    @assert sum(imag.(e)) < 1e-7 "Eigen values should be real, got $e."
+#end

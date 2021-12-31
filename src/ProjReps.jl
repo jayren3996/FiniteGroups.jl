@@ -82,7 +82,7 @@ function chiral_proj_reps(
     for i = 1:length(reps)
         rep = reps[i]
         S = rep[n+1]
-        e, v = eigen(S)
+        e, v = eigen(Hermitian(S))
         dim = length(e)÷2
         @assert norm(e[1:dim] .+ 1) < 1e-7 "Chiral operator not unitary, eigvals = $e."
         @assert norm(e[dim+1:2dim] .- 1) < 1e-7 "Chiral operator not unitary, eigvals = $e."

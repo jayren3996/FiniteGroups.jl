@@ -20,6 +20,7 @@ for gi = 1:32
                 end
                 rreps = proj_reps(bg, coeff, 2, real=true)
                 for rep in rreps
+                    @test promote_type(eltype.(rep)...) == Float64
                     for k = 1:order(bg)
                         @test norm(rep[k] * rep[k]' - I) < 1e-7             # check unitary
                     end
