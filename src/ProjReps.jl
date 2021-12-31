@@ -32,6 +32,10 @@ function cover_group(
 end
 #-------------------------------------------------------------------------------
 export check_proj_coeff
+"""
+Check whether a linear representation of the cover group of `g` is indeed the 
+projective representation obeying the projective coefficients.
+"""
 function check_proj_coeff(
     g::AbstractFiniteGroup, 
     r::AbstractVector{<:AbstractMatrix},
@@ -53,10 +57,77 @@ function proj_reps(
     g::AbstractFiniteGroup, 
     coeff::AbstractMatrix{<:Integer}, 
     p::Integer;
+    real::Bool=false,
     tol::Real=1e-7
 )
     cg = cover_group(g, coeff, p)
-    reps = irreps(cg)
+    reps = real ? realirreps(cg) : irreps(cg)
     check = [check_proj_coeff(g, rep, coeff, p, tol=tol) for rep in reps]
     [reps[i][1:order(g)] for i=1:length(reps) if check[i]]
+end
+
+#-------------------------------------------------------------------------------
+# Chiral projective representation.
+#-------------------------------------------------------------------------------
+export chiral_proj_reps
+function chiral_proj_reps(
+    g::AbstractFiniteGroup, 
+    χ::AbstractVector{<:Integer};
+    real::Bool=false
+)
+    n = order(g)
+    bg, coeff = double_group(g, χ)
+    reps = proj_reps(bg, coeff, 2, real=real)
+    out = []
+    for i = 1:length(reps)
+        rep = reps[i]
+        S = rep[n+1]
+        e, v = eigen(S)
+        dim = length(e)÷2
+        @assert norm(e[1:dim] .+ 1) < 1e-7 "Chiral operator not unitary, eigvals = $e."
+        @assert norm(e[dim+1:2dim] .- 1) < 1e-7 "Chiral operator not unitary, eigvals = $e."
+        U = hcat(svd(v[:,dim+1:2dim]).U, svd(v[:, 1:dim]).U)
+        @assert size(U) == (2dim, 2dim) "Dimension net correct, got $(size(U)), expect $((2dim, 2dim))"
+        Ui = U'
+        push!(out, [Ui * rep[i] * U for i = 1:n])
+    end
+    out
+end
+#-------------------------------------------------------------------------------
+"""
+    double_group(g::AbstractFiniteGroup, χ::AbstractVector{<:Integer})
+
+Construct a double group with element g⊕S⋅g, satisfying:
+    gᵢS⋅gⱼ = S⋅gᵢgⱼ,
+The projective coefficients is:
+    D(gᵢ)D(S⋅gⱼ) = χᵢD(S⋅gᵢgⱼ)
+
+The function takes Finitegroup `g` and coefficent `χ`, and return the doubled 
+group together with the projective coefficients. 
+"""
+function double_group(g::AbstractFiniteGroup, χ::AbstractVector{<:Integer})
+    @assert length(χ) == length(g.cls) "Length of χ should be equal to classes of g, while length(χ) = $(length(χ))."
+    n = order(g)
+    coeff = begin
+        ct = zeros(Int64, 2n, 2n)
+        for i = 1:n
+            p = χ[inclass(g, i)]
+            if p == -1
+                ct[i, n+1:2n] .= 1
+                ct[n+i, n+1:2n] .= 1
+            elseif p != 1
+                error("p should be ±1, get $p.")
+            end
+        end
+        ct
+    end
+    mt = Matrix{Int64}(undef, 2n, 2n)
+    for i=1:n, j=1:n
+        k = g[i,j]
+        mt[i, j] = k
+        mt[n+i, j] = n+k
+        mt[i, n+j] = n+k
+        mt[n+i, n+j] = k
+    end
+    FiniteGroup(mt), coeff
 end

@@ -1,6 +1,6 @@
 include("$(@__DIR__)/../src/FiniteGroups.jl")
 using .FiniteGroups, LinearAlgebra, Test
-
+import .FiniteGroups: check_rep
 
 for gi = 1:32
     g = pointgroup(gi)
@@ -21,16 +21,11 @@ for gi = 1:32
             for j = 1:size(χ, 1)
                 rep = R[j]
                 chi = χ[j, :]
-                
                 for k = 1:order(g)
                     @test chi[inclass(g, k)] ≈ tr(rep[k]) atol=1e-7     # check trace
                     @test norm(rep[k] * rep[k]' - I) < 1e-7             # check unitary
                 end
-                #test multiplication
-                for k = 1:order(g), l = 1:order(g)
-                    m = g[k, l]
-                    @test rep[m] ≈ rep[k] * rep[l] atol=1e-7
-                end
+                @test check_rep(g, rep)                                 #test multiplication
             end
         end
     end

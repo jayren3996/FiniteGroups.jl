@@ -17,7 +17,13 @@ function irreps(g::AbstractFiniteGroup, χ::AbstractMatrix)
     [prep(g, χ[i, :], reg) for i = 1:size(χ, 1)]
 end
 
-irreps(g::AbstractFiniteGroup) = irreps(g, charactertable(g))
+function irreps(g::AbstractFiniteGroup; real::Bool=false)
+    if real
+        realirreps(g)
+    else
+        irreps(g, charactertable(g))
+    end
+end
 #-------------------------------------------------------------------------------
 export realirreps
 """
