@@ -1,4 +1,30 @@
-export cover_group
+export proj_reps, cover_group, check_proj_coeff
+"""
+    proj_reps(g, coeff, p; R, tol)
+
+Calculate the projective representation of `g` with coefficients `coeff`.
+
+Inputs:
+-------
+g     : Finite group object.
+coeff : Coefficients represented by an integer matrix.
+p     : Modulus of the the integer.
+R     : Real or not, default = `false`.
+tol   : Tolerance, default = `1e-7`.
+"""
+function proj_reps(
+    g::AbstractFiniteGroup, 
+    coeff::AbstractMatrix{<:Integer}, 
+    p::Integer;
+    R::Bool=false,
+    tol::Real=1e-7
+)
+    cg = cover_group(g, coeff, p)
+    reps = irreps(cg, R=R)
+    check = [check_proj_coeff(g, rep, coeff, p, tol=tol) for rep in reps]
+    [reps[i][1:order(g)] for i=1:length(reps) if check[i]]
+end
+#-------------------------------------------------------------------------------
 """
     cover_group(g::AbstractFiniteGroup, coeff::AbstractMatrix{<:Integer}, p::Integer)
 
@@ -31,7 +57,6 @@ function cover_group(
     FiniteGroup(mt, "Cover Group for $(name(g))")
 end
 #-------------------------------------------------------------------------------
-export check_proj_coeff
 """
 Check whether a linear representation of the cover group of `g` is indeed the 
 projective representation obeying the projective coefficients.
@@ -51,25 +76,14 @@ function check_proj_coeff(
     end
     true
 end
-#-------------------------------------------------------------------------------
-export proj_reps
-function proj_reps(
-    g::AbstractFiniteGroup, 
-    coeff::AbstractMatrix{<:Integer}, 
-    p::Integer;
-    R::Bool=false,
-    tol::Real=1e-7
-)
-    cg = cover_group(g, coeff, p)
-    reps = R ? realirreps(cg) : irreps(cg)
-    check = [check_proj_coeff(g, rep, coeff, p, tol=tol) for rep in reps]
-    [reps[i][1:order(g)] for i=1:length(reps) if check[i]]
-end
 
 #-------------------------------------------------------------------------------
 # Chiral projective representation.
 #-------------------------------------------------------------------------------
 export chiral_proj_reps
+"""
+
+"""
 function chiral_proj_reps(
     g::AbstractFiniteGroup, 
     χ::AbstractVector{<:Integer};

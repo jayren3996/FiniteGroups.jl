@@ -5,72 +5,62 @@ export irreps
 Get the irreducible representations.
 """
 function irreps(g::AbstractFiniteGroup, χ::AbstractVector)
-    if isone(round(Int64, real(χ[1])))
-        return [χ[inclass(g, i)] * ones(1,1) for i = 1:order(g)]
-    end
+    isone(χ[1]) && return [χ[inclass(g, i)] * ones(1,1) for i = 1:order(g)]
     reg = regular_rep(g)
-    prep(g, χ, reg)
+    project_out_rep(g, χ, reg)
 end
 
 function irreps(g::AbstractFiniteGroup, χ::AbstractMatrix)
     reg = regular_rep(g)
-    [prep(g, χ[i, :], reg) for i = 1:size(χ, 1)]
+    [project_out_rep(g, χ[i, :], reg) for i = 1:size(χ, 1)]
 end
 
 function irreps(g::AbstractFiniteGroup; R::Bool=false)
-    if real
-        realirreps(g)
-    else
-        irreps(g, charactertable(g))
-    end
-end
-#-------------------------------------------------------------------------------
-export realirreps
-"""
-    realirreps(g::AbstractFiniteGroup)
-
-Get all irreducible real representations of g.
-"""
-function realirreps(g::AbstractFiniteGroup)
-    ct = charactertable(g)
-    rreps = Vector{Matrix{Float64}}[]
-    row = fill(true, size(ct, 1))
-    while any(row)
-        r = findfirst(row)
-        row[r] = false
-        rep = irreps(g, ct[r, :])
-        if promote_type(typeof.(ct[r, :])...) <: Real
-            push!(rreps, rep)
-        else
-            χc = conj(ct[r, :])
-            for i = 1:size(ct, 1)
-                (norm(ct[i, :] .- χc) < 1e-7) && (row[i] = false)
-            end
-            rrep = [[real(m) imag(m); -imag(m) real(m)] for m in rep]
-            push!(rreps, rrep)
-        end
-    end
-    rreps
+    R ? real_irreps(g) : irreps(g, charactertable(g))
 end
 
-function realirreps(g::AbstractFiniteGroup, χ::AbstractVector)
-    rep = irreps(g, χ)
-    if promote_type(typeof.(χ)...) <: Real
-        rep
-    else
-        [[real(m) imag(m); -imag(m) real(m)] for m in rep]
-    end
-end
 #-------------------------------------------------------------------------------
 # Project out irreps from regular representation
 #-------------------------------------------------------------------------------
-function prep(
+export regular_rep, proj_operator
+"""
+    regular_rep(multab::AbstractMatrix{<:Integer})
+
+Return regular representation.
+"""
+function regular_rep(g::AbstractFiniteGroup)
+    n = order(g)
+    [sparse([g[i,j] for j=1:n], 1:n, fill(1, n), n, n) for i=1:n]
+end
+#-------------------------------------------------------------------------------
+function proj_operator(
+    r::AbstractVector{<:AbstractMatrix}, 
+    χ::AbstractVector{<:Number},
+    g::AbstractFiniteGroup
+)
+    dtype = promote_type(eltype(χ), eltype.(r)...)
+    m = zeros(dtype, size(r[1]))
+    if length(χ) == length(class(g))
+        for i = 1:order(g)
+            m += conj(χ[inclass(g, i)]) * r[i]
+        end
+    elseif length(χ) == order(g)
+        for i = 1:order(g)
+            m += χ[inv(g, i)] * r[i]
+        end
+    else
+        error("Invalid length $(length(χ)) for χ.")
+    end
+    m
+end
+#-------------------------------------------------------------------------------
+function project_out_rep(
     g::AbstractFiniteGroup, 
     χ::AbstractVector{<:Number}, 
     reg::AbstractVector{<:AbstractMatrix};
     tol::Real=1e-7
 )
-    D = round(Int64, real(χ[1]))
+    D = Int(χ[1])
     isone(D) && return [χ[inclass(g, i)] * ones(1,1) for i = 1:order(g)]
     vs = begin
         e, v = proj_operator(reg, χ, g) |> Hermitian |> eigen
@@ -79,12 +69,8 @@ function prep(
     preg = [vs' * reg[cls[1]] * vs for cls in class(g)]
     v0 = find_least_degen(preg, D, tol=tol)
     P = krylov_space(reg[2:order(g)], vs*v0, D)
-    rep = Vector{Matrix{eltype(P)}}(undef, order(g))
-    Threads.@threads for i = 1:order(g)
-        rep[i] = P' * reg[i] * P
-    end
-    isone(check_real_rep(g, χ)) && return real_rep(rep)
-    rep
+    rep = transform_rep(P', reg, P)
+    isone(check_real_rep(g, χ)) ? real_rep(rep) : rep
 end
 #-------------------------------------------------------------------------------
 function find_least_degen(rep, D::Integer; dim::Integer=D^2, tol::Real=1e-7)
@@ -108,25 +94,58 @@ function find_least_degen(rep, D::Integer; dim::Integer=D^2, tol::Real=1e-7)
     rep2 = (min_vs' * mat * min_vs for mat in rep)
     min_vs * find_least_degen(rep2, D, dim=min_degen, tol=tol)
 end
+#-------------------------------------------------------------------------------
+"""
+    krylov_space(mats::AbstractVector{<:AbstractMatrix}, v0::AbstractVector, n::Integer; tol)
+
+Find the krylov space of the group action from initial vector `v0`.
+"""
+function krylov_space(
+    mats::AbstractVector{<:AbstractMatrix}, 
+    v0::AbstractVector, 
+    n::Integer; 
+    tol::Real=1e-3
+)
+    isone(n) && return reshape(v0, :, 1)
+    r, i, nmat = 1, 0, length(mats)
+    vs = v0
+    while r < n
+        i = mod(i, nmat) + 1
+        vs = hcat(vs, mats[i] * vs)
+        U, S = svd(vs)
+        pos = S .> tol
+        vs = U[:, pos]
+        r = size(vs, 2)
+    end
+    @assert r == n "Dimension of Krylov space not match: expect d = $n, get d = $r"
+    vs
+end
 
 #-------------------------------------------------------------------------------
-# Helpers
+# Realify
 #-------------------------------------------------------------------------------
-export check_real_rep
+export check_real_rep, real_rep, real_irreps
+"""
+    check_real_rep(g::AbstractFiniteGroup, χ)
+
+Check whether a representation is real/complex/pseudo-real:
++1 : Real 
+ 0 : Complex 
+-1 : Pseudo-real
+"""
 function check_real_rep(g::AbstractFiniteGroup, χ)
     n = sum(χ[inclass(g, g[i,i])] for i=1:order(g)) / order(g)
-    if abs(n-1) < 1e-7
+    if abs(n-1) < 1e-7          # Real 
         1
-    elseif abs(n+1) < 1e-7
+    elseif abs(n+1) < 1e-7      # Complex 
         -1
-    elseif abs(n) < 1e-7
+    elseif abs(n) < 1e-7        # Pseudo-real
         0
     else
         error("Sum of χ(g²) = $n ≠ ±g,0")
     end
 end
 #-------------------------------------------------------------------------------
-export real_rep
 """
     real_rep(r::AbstractVector{<:AbstractMatrix})
 
@@ -151,93 +170,56 @@ function real_rep(r::AbstractVector{<:AbstractMatrix})
     rep
 end
 #-------------------------------------------------------------------------------
-export regular_rep
 """
-    regular_rep(multab::AbstractMatrix{<:Integer})
+    real_irreps(g::AbstractFiniteGroup)
 
-Return regular representation.
+Get all irreducible real representations of g.
 """
-function regular_rep(g::AbstractFiniteGroup)
-    n = order(g)
-    [sparse([g[i,j] for j=1:n], 1:n, fill(1, n), n, n) for i=1:n]
-end
-#-------------------------------------------------------------------------------
-export proj_operator
-function proj_operator(
-    r::AbstractVector{<:AbstractMatrix}, 
-    χ::AbstractVector{<:Number},
-    g::AbstractFiniteGroup
-)
-    dtype = promote_type(eltype(χ), eltype.(r)...)
-    m = zeros(dtype, size(r[1]))
-    for i = 1:order(g)
-        m += conj(χ[inclass(g, i)]) * r[i]
-    end
-    m
-end
-#-------------------------------------------------------------------------------
-function krylov_space(
-    mats::AbstractVector{<:AbstractMatrix}, 
-    v0::AbstractVector, 
-    n::Integer; 
-    tol::Real=1e-3
-)
-    isone(n) && return reshape(v0, :, 1)
-    r, i, nmat = 1, 0, length(mats)
-    vs = v0
-    while r < n
-        i = mod(i, nmat) + 1
-        vs = hcat(vs, mats[i] * vs)
-        U, S = svd(vs)
-        pos = S .> tol
-        vs = U[:, pos]
-        r = size(vs, 2)
-    end
-    @assert r == n "Dimension of Krylov space not match: expect d = $n, get d = $r"
-    vs
+function real_irreps(g::AbstractFiniteGroup)
+    ct = charactertable(g)
+    rows = single_complex_row(ct)
+    [real_irreps(g, ct[r, :]) for r in rows]
 end
 
-#-------------------------------------------------------------------------------
-# Misc
-#-------------------------------------------------------------------------------
-export oplus
-function oplus(mat1::AbstractMatrix, mat2::AbstractMatrix, OD::Bool=false)
-    n1, n2 = size(mat1, 1), size(mat2, 1)
-    t = promote_type(eltype(mat1), eltype(mat2))
-    m = zeros(t, n1+n2, n1+n2)
-    if OD
-        m[1:n1, n1+1:n1+n2] .= mat1
-        m[n1+1:n1+n2, 1:n1] .= mat2
+function real_irreps(g::AbstractFiniteGroup, χ::AbstractVector)
+    rep = irreps(g, χ)
+    if promote_type(typeof.(χ)...) <: Real
+        rep
     else
-        m[1:n1, 1:n1] .= mat1
-        m[n1+1:n1+n2, n1+1:n1+n2] .= mat2
+        [[real(m) imag(m); -imag(m) real(m)] for m in rep]
     end
-    m
-end
-
-function oplus(
-    rep1::AbstractVector{<:AbstractMatrix},
-    rep2::AbstractVector{<:AbstractMatrix},
-    OD::Bool=false
-)
-    [oplus(rep1[i], rep2[i], OD) for i=1:length(rep1)]
 end
 #-------------------------------------------------------------------------------
-"""
-Check whether a group is legit
-"""
-function check_rep(g::AbstractFiniteGroup, r; tol=1e-7)
-    Threads.@threads for k = 1:order(g) 
-        for l = 1:order(g)
-            m = g[k, l]
-            norm(r[m] - r[k] * r[l]) > tol && return false
+function single_complex_row(ct::AbstractMatrix)
+    nrow = size(ct, 1)
+    row = fill(true, nrow)
+    for i = 1:nrow
+        row[i] || continue
+        if !(promote_type(typeof.(ct[i, :])...) <: Real)
+            χc = conj(ct[i, :])
+            for j = i+1:nrow
+                (norm(ct[j, :] .- χc) < 1e-7) && (row[j] = false)
+            end
         end
     end
-    true
+    (1:nrow)[row]
 end
 
 #-------------------------------------------------------------------------------
-# Specific Linear Algebra
+# Helper
+#-------------------------------------------------------------------------------
+export transform_rep
+function transform_rep(
+    u::AbstractMatrix{Tu}, 
+    rep::AbstractVector{<:AbstractMatrix{Tr}}, 
+    v::AbstractMatrix{Tv}
+) where {Tu, Tr, Tv}
+    new_rep = Vector{Matrix{promote_type(Tu, Tr, Tv)}}(undef, length(rep))
+    Threads.@threads for i = 1:length(rep)
+        new_rep[i] = u * rep[i] * v
+    end
+    new_rep
+end
 #-------------------------------------------------------------------------------
 """
 Eigen decomposition of unitary matrix.
@@ -254,10 +236,54 @@ function unitaryeigen(U::AbstractMatrix)
     end
     val, vec
 end
-
+#-------------------------------------------------------------------------------
 function unitarysqrt(U::AbstractMatrix)
     val, vec = unitaryeigen(U)
     sval = @. sqrt(Complex(val))
     vec * Diagonal(sval) * vec'
 end
 
+#-------------------------------------------------------------------------------
+# Misc
+#-------------------------------------------------------------------------------
+export oplus
+"""
+Direct sum of matrices or representations.
+"""
+function oplus(mats::AbstractMatrix...)
+    dn = size.(mats, 1)
+    D = sum(dn)
+    dtype = promote_type(eltype.(mats)...)
+    m = zeros(dtype, D, D)
+    s = 1
+    for i in 1:length(mats)
+        d = dn[i]
+        m[s:s+d-1, s:s+d-1] .= mats[i]
+        s += d
+    end
+    m
+end
+
+function oplus(reps::AbstractVector{<:AbstractMatrix{<:Number}}...)
+    [oplus((rep[i] for rep in reps)...) for i=1:length(reps[1])]
+end
+#-------------------------------------------------------------------------------
+"""
+Check whether a group is legit
+"""
+function check_rep(g::AbstractFiniteGroup, r; tol=1e-7)
+    Threads.@threads for k = 1:order(g) 
+        for l = 1:order(g)
+            m = g[k, l]
+            norm(r[m] - r[k] * r[l]) > tol && return false
+        end
+    end
+    true
+end
+
+function check_unitary(r; tol=1e-7)
+    Threads.@threads for m in r
+        norm(m' * m - I) > tol && return false
+    end
+    true
+end
