@@ -57,11 +57,11 @@ function proj_reps(
     g::AbstractFiniteGroup, 
     coeff::AbstractMatrix{<:Integer}, 
     p::Integer;
-    real::Bool=false,
+    R::Bool=false,
     tol::Real=1e-7
 )
     cg = cover_group(g, coeff, p)
-    reps = real ? realirreps(cg) : irreps(cg)
+    reps = R ? realirreps(cg) : irreps(cg)
     check = [check_proj_coeff(g, rep, coeff, p, tol=tol) for rep in reps]
     [reps[i][1:order(g)] for i=1:length(reps) if check[i]]
 end
@@ -73,16 +73,16 @@ export chiral_proj_reps
 function chiral_proj_reps(
     g::AbstractFiniteGroup, 
     χ::AbstractVector{<:Integer};
-    real::Bool=false
+    R::Bool=true
 )
     n = order(g)
     bg, coeff = double_group(g, χ)
-    reps = proj_reps(bg, coeff, 2, real=real)
+    reps = proj_reps(bg, coeff, 2, R=R)
     out = []
     for i = 1:length(reps)
         rep = reps[i]
         S = rep[n+1]
-        e, v = eigen(Hermitian(S))
+        e, v = eigen(Symmetric(S))
         dim = length(e)÷2
         @assert norm(e[1:dim] .+ 1) < 1e-7 "Chiral operator not unitary, eigvals = $e."
         @assert norm(e[dim+1:2dim] .- 1) < 1e-7 "Chiral operator not unitary, eigvals = $e."

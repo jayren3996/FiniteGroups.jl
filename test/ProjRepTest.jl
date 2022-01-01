@@ -24,7 +24,16 @@ for gi = 1:32
                     for k = 1:order(bg)
                         @test norm(rep[k] * rep[k]' - I) < 1e-7             # check unitary
                     end
-                    @test check_proj_coeff(g, rep, coeff, 2)
+                    @test check_proj_coeff(bg, rep, coeff, 2)
+                    @test check_rep(g, rep[1:order(g)])
+                end
+                rreps = chiral_proj_reps(g, Int.(χ), real=true)
+                for rep in rreps
+                    @test promote_type(eltype.(rep)...) == Float64
+                    for k = 1:order(g)
+                        @test norm(rep[k] * rep[k]' - I) < 1e-7             # check unitary
+                    end
+                    @test check_rep(g, rep)
                 end
             end
         end

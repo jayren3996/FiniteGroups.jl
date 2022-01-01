@@ -17,7 +17,7 @@ function irreps(g::AbstractFiniteGroup, χ::AbstractMatrix)
     [prep(g, χ[i, :], reg) for i = 1:size(χ, 1)]
 end
 
-function irreps(g::AbstractFiniteGroup; real::Bool=false)
+function irreps(g::AbstractFiniteGroup; R::Bool=false)
     if real
         realirreps(g)
     else
@@ -127,9 +127,20 @@ function check_real_rep(g::AbstractFiniteGroup, χ)
 end
 #-------------------------------------------------------------------------------
 export real_rep
+"""
+    real_rep(r::AbstractVector{<:AbstractMatrix})
+
+Return real representation for a complex-value real representation.
+
+For a representation D(g), it is a real representation means that
+    S⋅D̄(g)⋅S⁺ = D(g) => Sᵀ = S,
+Find the sqaure root of S, i.e., 
+    S = W⋅W => W⋅D̄(t)⋅W⁺ = W⁺⋅D(g)⋅W
+The real representation is W⁺⋅D(g)⋅W. 
+"""
 function real_rep(r::AbstractVector{<:AbstractMatrix})
     R = sum(kron(m, m) for m in r)
-    _, v = eigen(R)
+    v = eigen(R).vectors
     U = reshape(v[:, end], size(r[1])) * sqrt(size(r[1], 1))
     W = unitarysqrt(U)
     Wi = W'
@@ -250,8 +261,3 @@ function unitarysqrt(U::AbstractMatrix)
     vec * Diagonal(sval) * vec'
 end
 
-#function realeigen(m::AbstractMatrix{<:Real})
-#    e, v = eigen(m)
-#    eltype(v) <:Real && return e, v
-#    @assert sum(imag.(e)) < 1e-7 "Eigen values should be real, got $e."
-#end

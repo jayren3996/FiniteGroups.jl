@@ -25,6 +25,7 @@ include("Character.jl")
 include("Representation.jl")
 include("ProjReps.jl")
 include("Permutation.jl")
+include("Decomposition.jl")
 
 
 end
