@@ -10,24 +10,28 @@ For a representation D(g) and irrep d(g), find S that
 Take special note that the reshape function for row-major/column-major language:
     row_reshape(v, i,j) = col_reshape(v, j,i)ᵀ
 """
-function transform_mat(
+function proj_to_irreps(
     rep::AbstractVector{<:AbstractMatrix}, 
     irep::AbstractVector{<:AbstractMatrix};
     R::Bool=false
 )
-    D = size(rep[1], 1)
-    d = size(irep[1], 1)
-    M = sum(kron(conj.(irep[i]), rep[i]) for i=1:length(rep))
-    e, v = eigen(M)
-    @assert abs(e[end]-length(rep)) < 1e-7 "No such irrep, max value = $(e[end]/length(rep))"
-    U = reshape(v[:, end], D, d) * sqrt(d)
-    norm(imag(U)) < 1e-7 && return real(U)
-    R && norm(imag(U)) > 1e-7 && return [real(U) imag(U)]/sqrt(2)
-    U
+    D = size(irep[1], 1)
+    P = proj_operator(rep, [conj(m[1,1]) for m in irep])
+    e, v = eigen(Hermitian(P))
+    vecs = v[:, e .> 1e-7]
+    spaces = [krylov_space(rep, vecs[:, i], D) for i = 1:size(vecs, 2)]
+    if R && !(promote_type(eltype.(irep)...) <: Real)
+        [sqrt(2)*[real(s) imag(s)] for s in spaces] 
+    else
+        spaces
+    end
 end
 
 #-------------------------------------------------------------------------------
-function block_decomposition(rep::AbstractVector{<:AbstractMatrix}, R::Bool=true)
+function block_decomposition(
+    rep::AbstractVector{<:AbstractMatrix};
+    R::Bool=true
+)
     n = length(rep)
     g = begin
         multab = Matrix{Integer}(undef, n, n)
@@ -39,4 +43,7 @@ function block_decomposition(rep::AbstractVector{<:AbstractMatrix}, R::Bool=true
         FiniteGroup(multab)
     end
     ct = charactertable(g)
+    row = single_complex_row(ct)
+    reps = irreps(g, ct[row, :])
+    vcat([proj_to_irreps(rep, irep, R=R) for irep in reps]...)
 end

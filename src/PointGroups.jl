@@ -36,12 +36,39 @@ function pointgroup(i::Integer)
 end
 pointgroup(s::String) = pointgroup(PointGroupDict[s])
 
-export groupindex, operation, matrix, repname
+export groupindex, operation, matrix, rotation, repname
 groupindex(g::PointGroup) = PointGroupDict[name(g)]
 operation(g::PointGroup) = g.operations
 operation(g::PointGroup, i) = g.operations[i]
 matrix(g::PointGroup) = RotationMatrices[groupindex(g)]
 matrix(g::PointGroup, i) = RotationMatrices[groupindex(g)][i]
+function rotation(g::PointGroup)
+    GI = groupindex(g)
+    if HexagonalGroups[GI]
+        invhex = inv(HexagonalAxes)
+        [HexagonalAxes * m * invhex for m in RotationMatrices[GI]]
+    else
+        RotationMatrices[GI]
+    end
+end
+function rotation(g::PointGroup, i::Integer)
+    GI = groupindex(g)
+    if HexagonalGroups[GI]
+        mat = RotationMatrices[GI][i]
+        HexagonalAxes * mat * inv(HexagonalAxes)
+    else
+        RotationMatrices[GI][i]
+    end
+end
+function rotation(g::PointGroup, i::AbstractVector{<:Integer})
+    GI = groupindex(g)
+    if HexagonalGroups[GI]
+        invhex = inv(HexagonalAxes)
+        [HexagonalAxes * m * invhex for m in RotationMatrices[GI][i]]
+    else
+        RotationMatrices[GI][i]
+    end
+end
 function repname(g::PointGroup, i, convention::Integer=3)
     if convention == 3
         RepresentationNames3[groupindex(g)][i]
@@ -243,6 +270,8 @@ const OperationNames = [
     ["1", "2₀₀₁", "2₀₁₀", "2₁₀₀", "3₁₁₁⁺", "3₋₁₁₋₁⁺", "3₋₁₁₁⁻", "3₋₁₋₁₁⁺", "3₁₁₁⁻", "3₋₁₁₁⁺", "3₋₁₋₁₁⁻", "3₋₁₁₋₁⁻", "2₁₁₀", "2₋₁₁₀", "4₀₀₁⁻", "4₀₀₁⁺", "4₁₀₀⁻", "2₀₁₁", "2₀₋₁₁", "4₁₀₀⁺", "4₀₁₀⁺", "2₁₀₁", "4₀₁₀⁻", "2₋₁₀₁", "-1", "m₀₀₁", "m₀₁₀", "m₁₀₀", "-3₁₁₁⁺", "-3₋₁₁₋₁⁺", "-3₋₁₁₁⁻", "-3₋₁₋₁₁⁺", "-3₁₁₁⁻", "-3₋₁₁₁⁺", "-3₋₁₋₁₁⁻", "-3₋₁₁₋₁⁻", "m₁₁₀", "m₋₁₁₀", "-4₀₀₁⁻", "-4₀₀₁⁺", "-4₁₀₀⁻", "m₀₁₁", "m₀₋₁₁", "-4₁₀₀⁺", "-4₀₁₀⁺", "m₁₀₁", "-4₀₁₀⁻", "m₋₁₀₁"]
 ]
 
+const HexagonalAxes = [1.0 -0.5 0.0; 0.0 sqrt(3)/2 0.0; 0.0 0.0 1.0]
+const HexagonalGroups = Bool[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0]
 const RotationMatrices = [
     [[1 0 0; 0 1 0; 0 0 1]],
     [[1 0 0; 0 1 0; 0 0 1], [-1 0 0; 0 -1 0; 0 0 -1]],

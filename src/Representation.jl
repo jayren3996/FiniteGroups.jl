@@ -46,10 +46,22 @@ function proj_operator(
         end
     elseif length(χ) == order(g)
         for i = 1:order(g)
-            m += χ[inv(g, i)] * r[i]
+            m += χ[i] * r[i]
         end
     else
         error("Invalid length $(length(χ)) for χ.")
+    end
+    m
+end
+
+function proj_operator(
+    r::AbstractVector{<:AbstractMatrix}, 
+    χ::AbstractVector{<:Number}
+)
+    dtype = promote_type(eltype(χ), eltype.(r)...)
+    m = zeros(dtype, size(r[1]))
+    for i = 1:length(r)
+        m += χ[i] * r[i]
     end
     m
 end
