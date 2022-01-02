@@ -30,10 +30,11 @@ end
 #-------------------------------------------------------------------------------
 function block_decomposition(
     rep::AbstractVector{<:AbstractMatrix};
+    g::Union{AbstractFiniteGroup, Nothing}=nothing,
     R::Bool=true
 )
-    n = length(rep)
-    g = begin
+    group = if isnothing(g)
+        n = length(rep)
         multab = Matrix{Integer}(undef, n, n)
         for i=1:n, j=1:n
             gij = rep[i]*rep[j]
@@ -41,9 +42,13 @@ function block_decomposition(
             multab[i,j] = k
         end
         FiniteGroup(multab)
+    else
+        g
     end
-    ct = charactertable(g)
-    row = single_complex_row(ct)
-    reps = irreps(g, ct[row, :])
+    reps = begin
+        ct = charactertable(group)
+        row = single_complex_row(ct)
+        irreps(group, ct[row, :])
+    end
     vcat([proj_to_irreps(rep, irep, R=R) for irep in reps]...)
 end

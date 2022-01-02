@@ -69,7 +69,7 @@ function rotation(g::PointGroup, i::AbstractVector{<:Integer})
         RotationMatrices[GI][i]
     end
 end
-function repname(g::PointGroup, i, convention::Integer=3)
+function repname(g::PointGroup, i::Integer; convention::Integer=3)
     if convention == 3
         RepresentationNames3[groupindex(g)][i]
     elseif convention == 1
@@ -78,6 +78,21 @@ function repname(g::PointGroup, i, convention::Integer=3)
         RepresentationNames2[groupindex(g)][i]
     end
 end
+
+function repname(g::PointGroup, χ::AbstractVector; convention::Integer=3)
+    ct = charactertable(g)
+    k = 0
+    for i = 1:size(ct, 1)
+        if norm(ct[i, :] .- χ) < 1e-7 
+            k = i 
+            break
+        end
+    end
+    iszero(k) && error("No such character χ = $χ.")
+    repname(g, k, convention=convention)
+end
+
+charactertable(g::PointGroup) = CharacterTables[groupindex(g)]
 #-------------------------------------------------------------------------------
 # Raw Data
 #-------------------------------------------------------------------------------
@@ -410,4 +425,39 @@ const RepresentationNames3 = [
     ["A1", "A2", "E", "T2", "T1"],
     ["A1", "A2", "E", "T1", "T2"],
     ["A1g", "A1u", "A2g", "A2u", "Eg", "Eu", "T2g", "T2u", "T1g", "T1u"]
+]
+
+const CharacterTables = [
+    [1;;],
+    [1 1; 1 -1],
+    [1 1; 1 -1],
+    [1 1; 1 -1],
+    [1 1 1 1; 1 1 -1 -1; 1 -1 1 -1; 1 -1 -1 1],
+    [1 1 1 1; 1 1 -1 -1; 1 -1 1 -1; 1 -1 -1 1],
+    [1 1 1 1; 1 1 -1 -1; 1 -1 1 -1; 1 -1 -1 1],
+    [1 1 1 1 1 1 1 1; 1 1 1 1 -1 -1 -1 -1; 1 1 -1 -1 1 1 -1 -1; 1 1 -1 -1 -1 -1 1 1; 1 -1 1 -1 1 -1 1 -1; 1 -1 1 -1 -1 1 -1 1; 1 -1 -1 1 1 -1 -1 1; 1 -1 -1 1 -1 1 1 -1],
+    Number[1 1 1 1; 1 1 -1 -1; 1 -1 0 + 1im 0 - 1im; 1 -1 0 - 1im 0 + 1im],
+    Number[1 1 1 1; 1 1 -1 -1; 1 -1 0 + 1im 0 - 1im; 1 -1 0 - 1im 0 + 1im],
+    Number[1 1 1 1 1 1 1 1; 1 1 1 1 -1 -1 -1 -1; 1 1 -1 -1 1 1 -1 -1; 1 1 -1 -1 -1 -1 1 1; 1 -1 0 + 1im 0 - 1im 1 -1 0 + 1im 0 - 1im; 1 -1 0 + 1im 0 - 1im -1 1 0 - 1im 0 + 1im; 1 -1 0 - 1im 0 + 1im 1 -1 0 - 1im 0 + 1im; 1 -1 0 - 1im 0 + 1im -1 1 0 + 1im 0 - 1im],
+    [1 1 1 1 1; 1 1 1 -1 -1; 1 1 -1 1 -1; 1 1 -1 -1 1; 2 -2 0 0 0],
+    [1 1 1 1 1; 1 1 1 -1 -1; 1 1 -1 1 -1; 1 1 -1 -1 1; 2 -2 0 0 0],
+    [1 1 1 1 1; 1 1 1 -1 -1; 1 1 -1 1 -1; 1 1 -1 -1 1; 2 -2 0 0 0],
+    [1 1 1 1 1 1 1 1 1 1; 1 1 1 1 1 -1 -1 -1 -1 -1; 1 1 1 -1 -1 1 1 1 -1 -1; 1 1 1 -1 -1 -1 -1 -1 1 1; 1 1 -1 1 -1 1 1 -1 1 -1; 1 1 -1 1 -1 -1 -1 1 -1 1; 1 1 -1 -1 1 1 1 -1 -1 1; 1 1 -1 -1 1 -1 -1 1 1 -1; 2 -2 0 0 0 2 -2 0 0 0; 2 -2 0 0 0 -2 2 0 0 0],
+    Number[1 1 1; 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2; 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2],
+    Number[1 1 1 1 1 1; 1 1 1 -1 -1 -1; 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2; 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 -1 0.5 - sqrt(3)im/2 0.5 + sqrt(3)im/2; 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2; 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 -1 0.5 + sqrt(3)im/2 0.5 - sqrt(3)im/2],
+    [1 1 1; 1 1 -1; 2 -1 0],
+    [1 1 1; 1 1 -1; 2 -1 0],
+    [1 1 1 1 1 1; 1 1 1 -1 -1 -1; 1 1 -1 1 1 -1; 1 1 -1 -1 -1 1; 2 -1 0 2 -1 0; 2 -1 0 -2 1 0],
+    Number[1 1 1 1 1 1; 1 1 1 -1 -1 -1; 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2; 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 -1 0.5 - sqrt(3)im/2 0.5 + sqrt(3)im/2; 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2; 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 -1 0.5 + sqrt(3)im/2 0.5 - sqrt(3)im/2],
+    Number[1 1 1 1 1 1; 1 1 1 -1 -1 -1; 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2; 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 -1 0.5 - sqrt(3)im/2 0.5 + sqrt(3)im/2; 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2; 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 -1 0.5 + sqrt(3)im/2 0.5 - sqrt(3)im/2],
+    Number[1 1 1 1 1 1 1 1 1 1 1 1; 1 1 1 1 1 1 -1 -1 -1 -1 -1 -1; 1 1 1 -1 -1 -1 1 1 1 -1 -1 -1; 1 1 1 -1 -1 -1 -1 -1 -1 1 1 1; 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2; 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 -1 0.5 - sqrt(3)im/2 0.5 + sqrt(3)im/2 -1 0.5 - sqrt(3)im/2 0.5 + sqrt(3)im/2; 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 -1 0.5 - sqrt(3)im/2 0.5 + sqrt(3)im/2 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 -1 0.5 - sqrt(3)im/2 0.5 + sqrt(3)im/2; 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 -1 0.5 - sqrt(3)im/2 0.5 + sqrt(3)im/2 -1 0.5 - sqrt(3)im/2 0.5 + sqrt(3)im/2 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2; 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2; 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 -1 0.5 + sqrt(3)im/2 0.5 - sqrt(3)im/2 -1 0.5 + sqrt(3)im/2 0.5 - sqrt(3)im/2; 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 -1 0.5 + sqrt(3)im/2 0.5 - sqrt(3)im/2 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 -1 0.5 + sqrt(3)im/2 0.5 - sqrt(3)im/2; 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 -1 0.5 + sqrt(3)im/2 0.5 - sqrt(3)im/2 -1 0.5 + sqrt(3)im/2 0.5 - sqrt(3)im/2 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2],
+    [1 1 1 1 1 1; 1 1 1 1 -1 -1; 1 1 -1 -1 1 -1; 1 1 -1 -1 -1 1; 2 -1 2 -1 0 0; 2 -1 -2 1 0 0],
+    [1 1 1 1 1 1; 1 1 1 1 -1 -1; 1 1 -1 -1 1 -1; 1 1 -1 -1 -1 1; 2 -1 2 -1 0 0; 2 -1 -2 1 0 0],
+    [1 1 1 1 1 1; 1 1 1 1 -1 -1; 1 1 -1 -1 1 -1; 1 1 -1 -1 -1 1; 2 -1 2 -1 0 0; 2 -1 -2 1 0 0],
+    [1 1 1 1 1 1 1 1 1 1 1 1; 1 1 1 1 1 1 -1 -1 -1 -1 -1 -1; 1 1 1 1 -1 -1 1 1 1 1 -1 -1; 1 1 1 1 -1 -1 -1 -1 -1 -1 1 1; 1 1 -1 -1 1 -1 1 1 -1 -1 1 -1; 1 1 -1 -1 1 -1 -1 -1 1 1 -1 1; 1 1 -1 -1 -1 1 1 1 -1 -1 -1 1; 1 1 -1 -1 -1 1 -1 -1 1 1 1 -1; 2 -1 2 -1 0 0 2 -1 2 -1 0 0; 2 -1 2 -1 0 0 -2 1 -2 1 0 0; 2 -1 -2 1 0 0 2 -1 -2 1 0 0; 2 -1 -2 1 0 0 -2 1 2 -1 0 0],
+    Number[1 1 1 1; 1 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2; 1 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2; 3 -1 0 0],
+    Number[1 1 1 1 1 1 1 1; 1 1 1 1 -1 -1 -1 -1; 1 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 1 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2; 1 1 -0.5 + sqrt(3)im/2 -0.5 - sqrt(3)im/2 -1 -1 0.5 - sqrt(3)im/2 0.5 + sqrt(3)im/2; 1 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 1 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2; 1 1 -0.5 - sqrt(3)im/2 -0.5 + sqrt(3)im/2 -1 -1 0.5 + sqrt(3)im/2 0.5 - sqrt(3)im/2; 3 -1 0 0 3 -1 0 0; 3 -1 0 0 -3 1 0 0],
+    [1 1 1 1 1; 1 1 1 -1 -1; 2 2 -1 0 0; 3 -1 0 1 -1; 3 -1 0 -1 1],
+    [1 1 1 1 1; 1 1 1 -1 -1; 2 2 -1 0 0; 3 -1 0 1 -1; 3 -1 0 -1 1],
+    [1 1 1 1 1 1 1 1 1 1; 1 1 1 1 1 -1 -1 -1 -1 -1; 1 1 1 -1 -1 1 1 1 -1 -1; 1 1 1 -1 -1 -1 -1 -1 1 1; 2 2 -1 0 0 2 2 -1 0 0; 2 2 -1 0 0 -2 -2 1 0 0; 3 -1 0 1 -1 3 -1 0 1 -1; 3 -1 0 1 -1 -3 1 0 -1 1; 3 -1 0 -1 1 3 -1 0 -1 1; 3 -1 0 -1 1 -3 1 0 1 -1]
 ]

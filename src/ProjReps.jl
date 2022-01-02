@@ -82,7 +82,10 @@ end
 #-------------------------------------------------------------------------------
 export chiral_proj_reps
 """
+    chiral_proj_reps(g, χ; R=true)
 
+Representation of `g` with a chiral operator S, which is represented by 
+Diagonal([1, …, 1, -1, …, -1]). 
 """
 function chiral_proj_reps(
     g::AbstractFiniteGroup, 

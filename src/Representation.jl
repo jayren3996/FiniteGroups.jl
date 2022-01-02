@@ -258,7 +258,7 @@ end
 #-------------------------------------------------------------------------------
 # Misc
 #-------------------------------------------------------------------------------
-export oplus
+export oplus, unitary_rep
 """
 Direct sum of matrices or representations.
 """
@@ -281,6 +281,23 @@ function oplus(reps::AbstractVector{<:AbstractMatrix{<:Number}}...)
 end
 #-------------------------------------------------------------------------------
 """
+Convert a representation to unitary representation.
+
+Construct the matrix H = ∑D⁺(g)D(g) = v⋅e⋅v⁺ = (X⋅X⁺)⁻¹ = (X⁻¹)⁺⋅X⁻¹ 
+    => X = v⋅(√e)⁻¹⋅v⁺, X⁻¹ = v⋅(√e)⋅v⁺
+The new representation D'(g) := X⁻¹⋅D(g)⋅X is unitary:
+    D'⁺(g)⋅D'(g) = X⁺⋅D(g)⋅(X⁻¹)⁺⋅X⁻¹⋅D(g)⋅X = X⁺⋅H⋅X = I.
+"""
+function unitary_rep(rep)
+    H = sum(m' * m for m in rep)
+    e, v = eigen(Hermitian(H))
+    es, vd = sqrt.(e), v'
+    X = v * Diagonal(1 ./ es) * vd
+    Xi = v * Diagonal(es) * vd
+    transform_rep(Xi, rep, X)
+end
+#-------------------------------------------------------------------------------
+"""
 Check whether a group is legit
 """
 function check_rep(g::AbstractFiniteGroup, r; tol=1e-7)
@@ -292,7 +309,7 @@ function check_rep(g::AbstractFiniteGroup, r; tol=1e-7)
     end
     true
 end
-
+#-------------------------------------------------------------------------------
 function check_unitary(r; tol=1e-7)
     Threads.@threads for m in r
         norm(m' * m - I) > tol && return false
