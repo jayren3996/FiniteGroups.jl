@@ -311,7 +311,7 @@ function check_rep(g::AbstractFiniteGroup, r; tol=1e-7)
 end
 #-------------------------------------------------------------------------------
 function check_unitary(r; tol=1e-7)
-    Threads.@threads for m in r
+    for m in r
         norm(m' * m - I) > tol && return false
     end
     true
