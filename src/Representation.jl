@@ -30,7 +30,12 @@ Return regular representation.
 """
 function regular_rep(g::AbstractFiniteGroup)
     n = order(g)
-    [sparse([g[i,j] for j=1:n], 1:n, fill(1, n), n, n) for i=1:n]
+    rep = Vector{SparseMatrixCSC{Int64, Int64}}(undef, n)
+    all_ones = fill(1, n)
+    @threads for i = 1:n
+        rep[i] = sparse([g[i,j] for j=1:n], 1:n, all_ones, n, n)
+    end
+    rep
 end
 #-------------------------------------------------------------------------------
 function proj_operator(
@@ -78,7 +83,12 @@ function project_out_rep(
         e, v = proj_operator(reg, χ, g) |> Hermitian |> eigen
         v[:, e .> 1e-2]
     end
-    preg = [vs' * reg[cls[1]] * vs for cls in class(g)]
+    vsi = vs'
+    classes = class(g)
+    preg = Vector{Matrix{eltype(vs)}}(undef, length(classes))
+    @threads for i = 1:length(classes)
+        preg[i] = vsi * reg[classes[i][1]] * vs
+    end
     v0 = find_least_degen(preg, D, tol=tol)
     P = krylov_space(reg[2:order(g)], vs*v0, D)
     rep = transform_rep(P', reg, P)
@@ -288,7 +298,7 @@ Construct the matrix H = ∑D⁺(g)D(g) = v⋅e⋅v⁺ = (X⋅X⁺)⁻¹ = (X⁻
 The new representation D'(g) := X⁻¹⋅D(g)⋅X is unitary:
     D'⁺(g)⋅D'(g) = X⁺⋅D(g)⋅(X⁻¹)⁺⋅X⁻¹⋅D(g)⋅X = X⁺⋅H⋅X = I.
 """
-function unitary_rep(rep)
+function unitary_rep(rep::AbstractVector{<:AbstractMatrix})
     H = sum(m' * m for m in rep)
     e, v = eigen(Hermitian(H))
     es, vd = sqrt.(e), v'
@@ -300,19 +310,21 @@ end
 """
 Check whether a group is legit
 """
-function check_rep(g::AbstractFiniteGroup, r; tol=1e-7)
-    Threads.@threads for k = 1:order(g) 
+function check_rep(g::AbstractFiniteGroup, r::AbstractVector{<:AbstractMatrix}; tol::Real=1e-7)
+    Q = Matrix{Bool}(undef, order(g), order(g))
+    @threads for k = 1:order(g) 
         for l = 1:order(g)
             m = g[k, l]
-            norm(r[m] - r[k] * r[l]) > tol && return false
+            Q[k, l] = norm(r[m] - r[k] * r[l]) < tol
         end
     end
-    true
+    all(Q)
 end
 #-------------------------------------------------------------------------------
-function check_unitary(r; tol=1e-7)
-    for m in r
-        norm(m' * m - I) > tol && return false
+function check_unitary(r::AbstractVector{<:AbstractMatrix}; tol::Real=1e-7)
+    Q = Vector{Bool}(undef, length(r))
+    @threads for i = 1:length(r)
+        Q[i] = norm(r[i]' * r[i] - I) < tol
     end
-    true
+    all(Q)
 end

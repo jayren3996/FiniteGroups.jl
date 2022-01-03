@@ -3,13 +3,11 @@ export charactertable
     charactertable(g::AbstractFiniteGroup; method)
 
 Return the character table of group `g`.
-Use Burnside's method by defualt.
+Use Burnside's method.
 """
-function charactertable(g::AbstractFiniteGroup; method::String="Burnside", tol::Real=1e-7)
+function charactertable(g::AbstractFiniteGroup; tol::Real=1e-7)
     h = class_multab(g)
-    if method == "Burnside"
-        burnside(g, h, tol=tol)
-    end
+    burnside(g, h, tol=tol)
 end
 
 #-------------------------------------------------------------------------------
@@ -170,12 +168,11 @@ function class_multab(g::AbstractFiniteGroup)
     h
 end
 
-beautify(a::Integer; tol) = a
-function beautify(a::Real; tol=1e-7)
+function beautify(a::Real; tol::Real=1e-7)
     a_int = round(Int64, a)
     abs(a-a_int) < tol ? a_int : a
 end
-function beautify(a::Number; tol=1e-7)
+function beautify(a::Number; tol::Real=1e-7)
     if abs(imag(a)) < tol
         beautify(real(a))
     elseif abs(real(a)) < tol

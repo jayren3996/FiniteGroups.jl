@@ -26,15 +26,7 @@ include("Representation.jl")
 include("ProjReps.jl")
 include("Permutation.jl")
 include("Decomposition.jl")
-
-# Precompilation
-C6h = pointgroup(23)
-C6h_ct = charactertable(C6h)
-irreps(C6h, C6h_ct)
-irreps(C6h, R=true)
-
-Oh = pointgroup("Oh")
-irreps(Oh)
+include("Precompile.jl")
 
 
 end
