@@ -10,9 +10,13 @@ function irreps(g::AbstractFiniteGroup, χ::AbstractVector)
     project_out_rep(g, χ, reg)
 end
 
-function irreps(g::AbstractFiniteGroup, χ::AbstractMatrix)
+function irreps(g::AbstractFiniteGroup, χ::Union{AbstractMatrix, CharacterTable})
     reg = regular_rep(g)
     [project_out_rep(g, χ[i, :], reg) for i = 1:size(χ, 1)]
+end
+
+function irreps(g::AbstractFiniteGroup, c::Characters)
+    irreps(g, c.χ)
 end
 
 function irreps(g::AbstractFiniteGroup; R::Bool=false)
@@ -212,15 +216,15 @@ function real_irreps(g::AbstractFiniteGroup, χ::AbstractVector)
     end
 end
 #-------------------------------------------------------------------------------
-function single_complex_row(ct::AbstractMatrix)
-    nrow = size(ct, 1)
+function single_complex_row(ct::CharacterTable)
+    nrow = length(ct)
     row = fill(true, nrow)
     for i = 1:nrow
         row[i] || continue
-        if !(promote_type(typeof.(ct[i, :])...) <: Real)
-            χc = conj(ct[i, :])
+        if !(eltype(ct[i]) <: Real)
+            χc = conj(ct[i])
             for j = i+1:nrow
-                (norm(ct[j, :] .- χc) < 1e-7) && (row[j] = false)
+                ct[j] == χc && (row[j] = false)
             end
         end
     end
@@ -237,7 +241,7 @@ function transform_rep(
     v::AbstractMatrix{Tv}
 ) where {Tu, Tr, Tv}
     new_rep = Vector{Matrix{promote_type(Tu, Tr, Tv)}}(undef, length(rep))
-    Threads.@threads for i = 1:length(rep)
+    @threads for i = 1:length(rep)
         new_rep[i] = u * rep[i] * v
     end
     new_rep

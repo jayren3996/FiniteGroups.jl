@@ -2,7 +2,9 @@
 module FiniteGroups
 
 using LinearAlgebra, SparseArrays, Base.Threads
-import Base.:*
+#import Base.:*
+import Base: ==, *
+import LinearAlgebra: dot
 export name, order, class, inclass, mult
 """
     AbstractFiniteGroup
@@ -20,12 +22,12 @@ function Base.display(g::AbstractFiniteGroup)
 end
 
 include("FiniteGroup.jl")
-include("PointGroups.jl")
 include("Character.jl")
 include("Representation.jl")
 include("ProjReps.jl")
-include("Permutation.jl")
 include("Decomposition.jl")
+include("PointGroups.jl")
+include("Permutation.jl")
 include("Precompile.jl")
 
 

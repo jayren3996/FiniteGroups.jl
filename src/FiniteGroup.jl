@@ -19,6 +19,7 @@ function FiniteGroup(
 end
 
 name(g::AbstractFiniteGroup) = g.name
+name(g::AbstractFiniteGroup, i::Integer) = string(i)
 Base.getindex(g::AbstractFiniteGroup, i, j) = g.multab[i, j]
 Base.inv(g::AbstractFiniteGroup, i) = g.inv[i]
 class(g::AbstractFiniteGroup) = g.cls
@@ -117,4 +118,8 @@ function check_group(multab)
     true
 end
 
-
+# Precompile
+precompile(FiniteGroup, (Matrix{Int64}, String))
+precompile(group_inverse, (Matrix{Int64},))
+precompile(conjugate_class, (Matrix{Int64}, Vector{Int64}))
+precompile(collect_group, (Vector{Int64}, Int64))
