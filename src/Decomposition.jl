@@ -1,6 +1,7 @@
 #-------------------------------------------------------------------------------
 # Decomposition
 #-------------------------------------------------------------------------------
+export proj_to_irrep
 """
 Transform matrix from a (reducible) representation to a given irrep.
 
@@ -10,16 +11,26 @@ For a representation D(g) and irrep d(g), find S that
 Take special note that the reshape function for row-major/column-major language:
     row_reshape(v, i,j) = col_reshape(v, j,i)ᵀ
 """
-function proj_to_irreps(
+function proj_to_irrep(
     rep::AbstractVector{<:AbstractMatrix}, 
     irep::AbstractVector{<:AbstractMatrix};
     R::Bool=false
 )
-    D = size(irep[1], 1)
-    P = proj_operator(rep, [conj(m[1,1]) for m in irep])
-    e, v = eigen(Hermitian(P))
-    vecs = v[:, e .> 1e-7]
-    spaces = [krylov_space(rep, vecs[:, i], D) for i = 1:size(vecs, 2)]
+    N, D = length(rep), size(irep[1], 1)
+    vecs = map(1:D) do i 
+        Pii = proj_operator(rep, [conj(m[i,i]) for m in irep])
+        e, v = eigen(Hermitian(Pii))
+        v[:, e .> 1e-7]
+    end
+    for i = 2:D
+        Pi1 = proj_operator(rep, [conj(m[i,1]) for m in irep])
+        U = vecs[i]' * Pi1 * vecs[1] * D / N
+        #@assert norm(U*U'-I) < 1e-7 "Not unitary."
+        vecs[i] = vecs[i] * U
+    end
+    spaces = map(1:size(vecs[1], 2)) do i 
+        hcat((vecs[j][:, i] for j=1:D)...)
+    end
     if R && !(promote_type(eltype.(irep)...) <: Real)
         [sqrt(2)*[real(s) imag(s)] for s in spaces] 
     else
@@ -50,5 +61,5 @@ function block_decomposition(
         row = single_complex_row(ct)
         irreps(group, ct[row, :])
     end
-    vcat([proj_to_irreps(rep, irep, R=R) for irep in reps]...)
+    vcat([proj_to_irrep(rep, irep, R=R) for irep in reps]...)
 end

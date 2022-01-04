@@ -2,10 +2,10 @@
 module FiniteGroups
 
 using LinearAlgebra, SparseArrays, Base.Threads
-#import Base.:*
 import Base: ==, *
 import LinearAlgebra: dot
 export name, order, class, inclass, mult
+
 """
     AbstractFiniteGroup
 

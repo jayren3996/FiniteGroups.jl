@@ -28,7 +28,7 @@ end
 #-------------------------------------------------------------------------------
 export regular_rep, proj_operator
 """
-    regular_rep(multab::AbstractMatrix{<:Integer})
+    regular_rep(g::AbstractFiniteGroup)
 
 Return regular representation.
 """
@@ -42,11 +42,7 @@ function regular_rep(g::AbstractFiniteGroup)
     rep
 end
 #-------------------------------------------------------------------------------
-function proj_operator(
-    r::AbstractVector{<:AbstractMatrix}, 
-    χ::AbstractVector{<:Number},
-    g::AbstractFiniteGroup
-)
+function proj_operator(r::AbstractVector{<:AbstractMatrix}, χ::AbstractVector{<:Number}, g::AbstractFiniteGroup)
     dtype = promote_type(eltype(χ), eltype.(r)...)
     m = zeros(dtype, size(r[1]))
     if length(χ) == length(class(g))
@@ -63,10 +59,7 @@ function proj_operator(
     m
 end
 
-function proj_operator(
-    r::AbstractVector{<:AbstractMatrix}, 
-    χ::AbstractVector{<:Number}
-)
+function proj_operator(r::AbstractVector{<:AbstractMatrix}, χ::AbstractVector{<:Number})
     dtype = promote_type(eltype(χ), eltype.(r)...)
     m = zeros(dtype, size(r[1]))
     for i = 1:length(r)
@@ -235,16 +228,28 @@ end
 # Helper
 #-------------------------------------------------------------------------------
 export transform_rep
-function transform_rep(
-    u::AbstractMatrix{Tu}, 
-    rep::AbstractVector{<:AbstractMatrix{Tr}}, 
-    v::AbstractMatrix{Tv}
-) where {Tu, Tr, Tv}
-    new_rep = Vector{Matrix{promote_type(Tu, Tr, Tv)}}(undef, length(rep))
-    @threads for i = 1:length(rep)
-        new_rep[i] = u * rep[i] * v
+"""
+    transform_rep(U, D1, V)
+
+Transform the basis of the representationc `D1`.
+
+The inputs is `U`, `D1`, and `V`, the output is:
+    D₂(g) = U⋅D₁(g)⋅V
+"""
+function transform_rep(U::AbstractMatrix{Tu}, D1::AbstractVector{<:AbstractMatrix{Tr}}, V::AbstractMatrix{Tv}) where {Tu, Tr, Tv}
+    D2 = Vector{Matrix{promote_type(Tu, Tr, Tv)}}(undef, length(D1))
+    @threads for i = 1:length(D1)
+        D2[i] = U * D1[i] * V
     end
-    new_rep
+    D2
+end
+
+function transform_rep(rep::AbstractVector{<:AbstractMatrix}, v::AbstractMatrix)
+    if norm(v' * v - I) < 1e-10 
+        transform_rep(v', rep, v)
+    else
+        transform_rep(inv(v), rep, v)
+    end
 end
 #-------------------------------------------------------------------------------
 """
@@ -272,7 +277,7 @@ end
 #-------------------------------------------------------------------------------
 # Misc
 #-------------------------------------------------------------------------------
-export oplus, unitary_rep
+export oplus, unitary_rep, equivalent_transform
 """
 Direct sum of matrices or representations.
 """
@@ -312,11 +317,24 @@ function unitary_rep(rep::AbstractVector{<:AbstractMatrix})
 end
 #-------------------------------------------------------------------------------
 """
+Return the transformation matrix between two equivalent irreducible representation
+`rep1`, `rep2`, satisfying:
+    rep2[i] = U⁻¹ * rep1[i] * U.
+"""
+function equivalent_transform(rep1::AbstractVector{<:AbstractMatrix}, rep2::AbstractVector{<:AbstractMatrix})
+    D = size(rep1[1], 1)
+    H = sum(kron(conj(rep2[i]), rep1[i]) for i = 1:length(rep1))
+    e, v = eigen(H)
+    @assert abs(e[end]) - abs(e[end-1]) > 1e-3 "Encounter possible degeneracy, implying reducibility."
+    reshape(v[:, end], D, D) * sqrt(D)
+end
+#-------------------------------------------------------------------------------
+"""
 Check whether a group is legit
 """
 function check_rep(g::AbstractFiniteGroup, r::AbstractVector{<:AbstractMatrix}; tol::Real=1e-7)
     Q = Matrix{Bool}(undef, order(g), order(g))
-    @threads for k = 1:order(g) 
+    for k = 1:order(g) 
         for l = 1:order(g)
             m = g[k, l]
             Q[k, l] = norm(r[m] - r[k] * r[l]) < tol
@@ -327,7 +345,7 @@ end
 #-------------------------------------------------------------------------------
 function check_unitary(r::AbstractVector{<:AbstractMatrix}; tol::Real=1e-7)
     Q = Vector{Bool}(undef, length(r))
-    @threads for i = 1:length(r)
+    for i = 1:length(r)
         Q[i] = norm(r[i]' * r[i] - I) < tol
     end
     all(Q)

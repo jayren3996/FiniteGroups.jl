@@ -26,7 +26,7 @@ end
 #-------------------------------------------------------------------------------
 Base.getindex(c::Characters, i) = c.χ[i]
 Base.length(c::Characters) = length(c.χ)
-Base.eltype(c::Characters{T,Tg}) where {T,Tg} = T
+Base.eltype(::Characters{T,Tg}) where {T,Tg} = T
 Base.conj(c::Characters) = Characters(conj(c.χ), c.R, c.g)
 function Base.isless(c1::Characters, c2::Characters)
     @assert isequal(c1.g, c2.g) "Compared characters should belong to tha same group."
