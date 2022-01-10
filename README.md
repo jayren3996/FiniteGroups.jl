@@ -61,21 +61,52 @@ We can calculate the character table of a finite group using the command
 tab = character(g)
 ```
 
-If group `g` is chosen to be the pointgroup Oh, the result is:
+If group `g` is chosen to be the pointgroup Oh, the displayed result is:
 
 ```julia
-julia> charactertable(g)
-10×10 Matrix{Int64}:
- 1   1   1   1   1   1   1   1   1   1
- 1   1   1  -1  -1  -1  -1   1   1  -1
- 1  -1   1   1  -1  -1   1   1  -1   1
- 1  -1   1  -1   1   1  -1   1  -1  -1
- 2   0  -1   2   0   0  -1   2   0   2
- 2   0  -1  -2   0   0   1   2   0  -2
- 3   1   0   1  -1   1   0  -1  -1  -3
- 3   1   0  -1   1  -1   0  -1  -1   3
- 3  -1   0  -1  -1   1   0  -1   1   3
- 3  -1   0   1   1  -1   0  -1   1  -3
+julia> ctable = charactertable(g)
+11×11 Matrix{Any}:
+ ""      "1"    "2₀₀₁"    "3₁₁₁⁺"    "2₁₁₀"    "4₀₀₁⁻"    "-1"    "m₀₀₁"    "-3₁₁₁⁺"    "m₁₁₀"    "-4₀₀₁⁻"
+ "A1g"  1.0    1.0       1.0        1.0       1.0        1.0     1.0       1.0         1.0       1.0
+ "A1u"  1.0    1.0       1.0        1.0       1.0       -1.0    -1.0      -1.0        -1.0      -1.0
+ "A2g"  1.0    1.0       1.0       -1.0      -1.0        1.0     1.0       1.0        -1.0      -1.0
+ "A2u"  1.0    1.0       1.0       -1.0      -1.0       -1.0    -1.0      -1.0         1.0       1.0
+ "Eg"   2.0    2.0      -1.0        0.0       0.0        2.0     2.0      -1.0         0.0       0.0
+ "Eu"   2.0    2.0      -1.0        0.0       0.0       -2.0    -2.0       1.0         0.0       0.0
+ "T2g"  3.0   -1.0       0.0        1.0      -1.0        3.0    -1.0       0.0         1.0      -1.0
+ "T2u"  3.0   -1.0       0.0        1.0      -1.0       -3.0     1.0       0.0        -1.0       1.0
+ "T1g"  3.0   -1.0       0.0       -1.0       1.0        3.0    -1.0       0.0        -1.0       1.0
+ "T1u"  3.0   -1.0       0.0       -1.0       1.0       -3.0     1.0       0.0         1.0      -1.0
+```
+
+The `chartable` is of type `CharacterTable`, from which we can extract a specific set of characters:
+
+```julia
+julia> ctable[10]
+Characters of Real representation of Oh:
+[3.0, -1.0, 0.0, -1.0, 1.0, -3.0, 1.0, 0.0, 1.0, -1.0]
+```
+
+The `CharacterTable` can be sliced as a matrix:
+
+```julia
+julia> ctable[3,:]
+10-element Vector{Float64}:
+  1.0
+  1.0
+  1.0
+ -1.0
+ -1.0
+  1.0
+  1.0
+  1.0
+ -1.0
+ -1.0
+julia> ctable[1:3,:]
+3×10 Matrix{Float64}:
+ 1.0  1.0  1.0   1.0   1.0   1.0   1.0   1.0   1.0   1.0
+ 1.0  1.0  1.0   1.0   1.0  -1.0  -1.0  -1.0  -1.0  -1.0
+ 1.0  1.0  1.0  -1.0  -1.0   1.0   1.0   1.0  -1.0  -1.0
 ```
 
 ### Irreducible Representation
@@ -83,6 +114,61 @@ julia> charactertable(g)
 We can also compute all irreducible representations of a finite group `g`, using the command:
 
 ```julia
-representations = irreps(g)
+g = pointgroup("C4h")
+reps = irreps(g)
+display.(reps[end])
+```
+
+The output is:
+
+```julia
+2×2 Matrix{ComplexF64}:
+ 1.0+0.0im  0.0+0.0im
+ 0.0+0.0im  1.0+0.0im
+2×2 Matrix{ComplexF64}:
+ -1.0+0.0im   0.0+0.0im
+  0.0+0.0im  -1.0+0.0im
+2×2 Matrix{ComplexF64}:
+ 0.0+0.0im  -1.0+0.0im
+ 1.0+0.0im   0.0+0.0im
+2×2 Matrix{ComplexF64}:
+  0.0+0.0im  1.0+0.0im
+ -1.0+0.0im  0.0+0.0im
+2×2 Matrix{ComplexF64}:
+ 0.0+0.0im  1.0+0.0im
+ 1.0+0.0im  0.0+0.0im
+2×2 Matrix{ComplexF64}:
+  0.0+0.0im  -1.0+0.0im
+ -1.0+0.0im   0.0+0.0im
+2×2 Matrix{ComplexF64}:
+ 1.0+0.0im   0.0+0.0im
+ 0.0+0.0im  -1.0+0.0im
+2×2 Matrix{ComplexF64}:
+ -1.0+0.0im  0.0+0.0im
+  0.0+0.0im  1.0+0.0im
+2×2 Matrix{ComplexF64}:
+ -1.0+0.0im   0.0+0.0im
+  0.0+0.0im  -1.0+0.0im
+2×2 Matrix{ComplexF64}:
+ 1.0+0.0im  0.0+0.0im
+ 0.0+0.0im  1.0+0.0im
+2×2 Matrix{ComplexF64}:
+  0.0+0.0im  1.0+0.0im
+ -1.0+0.0im  0.0+0.0im
+2×2 Matrix{ComplexF64}:
+ 0.0+0.0im  -1.0+0.0im
+ 1.0+0.0im   0.0+0.0im
+2×2 Matrix{ComplexF64}:
+  0.0+0.0im  -1.0+0.0im
+ -1.0+0.0im   0.0+0.0im
+2×2 Matrix{ComplexF64}:
+ 0.0+0.0im  1.0+0.0im
+ 1.0+0.0im  0.0+0.0im
+2×2 Matrix{ComplexF64}:
+ -1.0+0.0im  0.0+0.0im
+  0.0+0.0im  1.0+0.0im
+2×2 Matrix{ComplexF64}:
+ 1.0+0.0im   0.0+0.0im
+ 0.0+0.0im  -1.0+0.0im
 ```
 
