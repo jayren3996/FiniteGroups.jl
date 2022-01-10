@@ -427,8 +427,8 @@ const PointGroupRepresentationNames3 = [
     ["A1", "A2", "B1", "B2", "E1", "E2"],
     ["A1'", "A2''", "A2'", "A1''", "E''", "E'"],
     ["A1g", "A1u", "A2g", "A2u", "B1g", "B1u", "B2g", "B2u", "E1g", "E1u", "E2g", "E2u"],
-    ["A", "E1", "E2", "T"],
-    ["Ag", "A1u", "E1g", "E1u", "E2g", "E2u", "Tg", "Tu"],
+    ["A", "1E", "2E", "T"],
+    ["Ag", "Au", "1Eg", "1Eu", "2Eg", "2Eu", "Tg", "Tu"],
     ["A1", "A2", "E", "T2", "T1"],
     ["A1", "A2", "E", "T1", "T2"],
     ["A1g", "A1u", "A2g", "A2u", "Eg", "Eu", "T2g", "T2u", "T1g", "T1u"]

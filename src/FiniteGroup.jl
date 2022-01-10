@@ -19,7 +19,7 @@ function FiniteGroup(
 end
 
 name(g::AbstractFiniteGroup) = g.name
-name(g::AbstractFiniteGroup, i::Integer) = string(i)
+name(::AbstractFiniteGroup, i::Integer) = string(i)
 Base.getindex(g::AbstractFiniteGroup, i, j) = g.multab[i, j]
 Base.inv(g::AbstractFiniteGroup, i) = g.inv[i]
 class(g::AbstractFiniteGroup) = g.cls

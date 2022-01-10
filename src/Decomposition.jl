@@ -7,9 +7,6 @@ Transform matrix from a (reducible) representation to a given irrep.
 
 For a representation D(g) and irrep d(g), find S that
     S⁺⋅D(g)⋅S = d(g)
-
-Take special note that the reshape function for row-major/column-major language:
-    row_reshape(v, i,j) = col_reshape(v, j,i)ᵀ
 """
 function proj_to_irrep(
     rep::AbstractVector{<:AbstractMatrix}, 
@@ -31,35 +28,52 @@ function proj_to_irrep(
     spaces = map(1:size(vecs[1], 2)) do i 
         hcat((vecs[j][:, i] for j=1:D)...)
     end
-    if R && !(promote_type(eltype.(irep)...) <: Real)
+    if R && sum(norm.(imag.(rep))) > 1e-7
         [sqrt(2)*[real(s) imag(s)] for s in spaces] 
     else
         spaces
     end
 end
-
+#-------------------------------------------------------------------------------
+"""
+Find a list of projection Sᵢ that
+    Sᵢ⁺⋅D(g)⋅Sᵢ = dᵢ(g),
+where {dᵢ} is a list of irreducible representations as an input.
+"""
+function proj_to_irrep(
+    rep::AbstractVector{<:AbstractMatrix}, 
+    ireps::AbstractVector{<:AbstractVector{<:AbstractMatrix}};
+    R::Bool=false
+)
+    vcat([proj_to_irrep(rep, irep, R=R) for irep in ireps]...)
+end
 #-------------------------------------------------------------------------------
 function block_decomposition(
-    rep::AbstractVector{<:AbstractMatrix};
-    g::Union{AbstractFiniteGroup, Nothing}=nothing,
+    rep::AbstractVector{<:AbstractMatrix},
+    group::AbstractFiniteGroup;
     R::Bool=true
 )
-    group = if isnothing(g)
-        n = length(rep)
-        multab = Matrix{Integer}(undef, n, n)
-        for i=1:n, j=1:n
-            gij = rep[i]*rep[j]
-            k = findfirst(x -> norm(x-gij)<1e-7, rep)
-            multab[i,j] = k
+    ct = charactertable(group)
+    row = single_complex_row(ct)
+    ireps =  irreps(group, ct[row, :])
+    proj_to_irrep(rep, ireps, R=R)
+end
+#-------------------------------------------------------------------------------
+function block_decomposition(rep::AbstractVector{<:AbstractMatrix}; R::Bool=true)
+    n = length(rep)
+    multab = Matrix{Integer}(undef, n, n)
+    for i=1:n, j=1:n
+        gij = rep[i]*rep[j]
+        gij_index = 0
+        for k = 1:n
+            if norm(rep[k] - gij) < 1e-10
+                @assert iszero(gij_index) "Not faithful representation. An explicit `FiniteGroup` should be provided."
+                gij_index = k
+            end
         end
-        FiniteGroup(multab)
-    else
-        g
+        @assert gij_index > 0 "The input `rep` is not a representation."
+        multab[i,j] = gij_index
     end
-    reps = begin
-        ct = charactertable(group)
-        row = single_complex_row(ct)
-        irreps(group, ct[row, :])
-    end
-    vcat([proj_to_irrep(rep, irep, R=R) for irep in reps]...)
+    group = FiniteGroup(multab)
+    block_decomposition(rep, group, R=R)
 end
