@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 # Decomposition
 #-------------------------------------------------------------------------------
-export proj_to_irrep
+export proj_to_irrep, block_decomposition
 """
 Transform matrix from a (reducible) representation to a given irrep.
 
@@ -57,6 +57,14 @@ function block_decomposition(
     row = single_complex_row(ct)
     ireps =  irreps(group, ct[row, :])
     proj_to_irrep(rep, ireps, R=R)
+end
+#-------------------------------------------------------------------------------
+function block_decomposition(
+    rep::AbstractVector{<:AbstractMatrix}, 
+    group::String; 
+    R::Bool=true
+)
+    block_decomposition(rep, pointgroup(group), R=R)
 end
 #-------------------------------------------------------------------------------
 function block_decomposition(rep::AbstractVector{<:AbstractMatrix}; R::Bool=true)

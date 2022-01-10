@@ -1,6 +1,5 @@
 include("$(@__DIR__)/../src/FiniteGroups.jl")
 using .FiniteGroups, LinearAlgebra, Test
-import .FiniteGroups: proj_to_irreps, block_decomposition
 
 g = pointgroup("Oh")
 rreps = irreps(g, R=true)
@@ -20,7 +19,7 @@ rep = oplus(
 )
 ru = Symmetric(rand(size(rep[1])...)) |> eigvecs
 rep = transform_rep(ru', rep, ru)
-res = block_decomposition(rep)
+res = block_decomposition(rep, g)
 
 @testset "Oh Decomp" begin
     @test length(res) == 11
