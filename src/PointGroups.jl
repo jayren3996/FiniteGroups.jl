@@ -101,7 +101,7 @@ function charactertable(g::PointGroup)
     GI = groupindex(g)
     tabmat = PointGroupCharacterTables[GI]
     tab = [Characters(g, tabmat[i,:]) for i = 1:size(tabmat, 1)]
-    names = PointGroupRepresentationNames3[GI]
+    names = PointGroupRepresentationNames[GI]
     CharacterTable(tab, names)
 end
 
