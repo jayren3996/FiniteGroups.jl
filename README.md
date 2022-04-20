@@ -64,19 +64,19 @@ tab = character(g)
 If group `g` is chosen to be the pointgroup Oh, the displayed result is:
 
 ```julia
-julia> ctable = charactertable(g)
+julia> charactertable(pointgroup("Oh"))
 11×11 Matrix{Any}:
  ""      "1"    "2₀₀₁"    "3₁₁₁⁺"    "2₁₁₀"    "4₀₀₁⁻"    "-1"    "m₀₀₁"    "-3₁₁₁⁺"    "m₁₁₀"    "-4₀₀₁⁻"
- "A1g"  1.0    1.0       1.0        1.0       1.0        1.0     1.0       1.0         1.0       1.0
- "A1u"  1.0    1.0       1.0        1.0       1.0       -1.0    -1.0      -1.0        -1.0      -1.0
- "A2g"  1.0    1.0       1.0       -1.0      -1.0        1.0     1.0       1.0        -1.0      -1.0
- "A2u"  1.0    1.0       1.0       -1.0      -1.0       -1.0    -1.0      -1.0         1.0       1.0
- "Eg"   2.0    2.0      -1.0        0.0       0.0        2.0     2.0      -1.0         0.0       0.0
- "Eu"   2.0    2.0      -1.0        0.0       0.0       -2.0    -2.0       1.0         0.0       0.0
- "T2g"  3.0   -1.0       0.0        1.0      -1.0        3.0    -1.0       0.0         1.0      -1.0
- "T2u"  3.0   -1.0       0.0        1.0      -1.0       -3.0     1.0       0.0        -1.0       1.0
- "T1g"  3.0   -1.0       0.0       -1.0       1.0        3.0    -1.0       0.0        -1.0       1.0
- "T1u"  3.0   -1.0       0.0       -1.0       1.0       -3.0     1.0       0.0         1.0      -1.0
+ "A1g"  1      1         1          1         1          1       1         1           1         1
+ "A1u"  1      1         1          1         1         -1      -1        -1          -1        -1
+ "A2g"  1      1         1         -1        -1          1       1         1          -1        -1
+ "A2u"  1      1         1         -1        -1         -1      -1        -1           1         1
+ "Eg"   2      2        -1          0         0          2       2        -1           0         0
+ "Eu"   2      2        -1          0         0         -2      -2         1           0         0
+ "T2g"  3     -1         0          1        -1          3      -1         0           1        -1
+ "T2u"  3     -1         0          1        -1         -3       1         0          -1         1
+ "T1g"  3     -1         0         -1         1          3      -1         0          -1         1
+ "T1u"  3     -1         0         -1         1         -3       1         0           1        -1
 ```
 
 The `chartable` is of type `CharacterTable`, from which we can extract a specific set of characters:
@@ -114,7 +114,7 @@ julia> ctable[1:3,:]
 We can also compute all irreducible representations of a finite group `g`, using the command:
 
 ```julia
-g = pointgroup("C4h")
+g = pointgroup("T")
 reps = irreps(g)
 display.(reps[end])
 ```
