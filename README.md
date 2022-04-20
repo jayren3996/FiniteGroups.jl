@@ -111,64 +111,75 @@ julia> ctable[1:3,:]
 
 ### Irreducible Representation
 
-We can also compute all irreducible representations of a finite group `g`, using the command:
+We can also compute all irreducible representations of a finite group `g`, using the command `irreps`. For example, the character table for point group T is:
 
 ```julia
-g = pointgroup("T")
-reps = irreps(g)
-display.(reps[end])
+julia> g = pointgroup("T"); charactertable(g)
+5×5 Matrix{Any}:
+ ""        "1"         "2₀₀₁"       "3₁₁₁⁺"          "3₁₁₁⁻"
+ "A"   1.0+0.0im   1.0+0.0im    1.0+0.0im        1.0+0.0im
+ "1E"  1.0+0.0im   1.0+0.0im   -0.5-0.866025im  -0.5+0.866025im
+ "2E"  1.0+0.0im   1.0+0.0im   -0.5+0.866025im  -0.5-0.866025im
+ "T"   3.0+0.0im  -1.0+0.0im    0.0+0.0im        0.0+0.0im
 ```
 
-The output is:
+We see there is a three-dimensional T representation. To obtain the representation matrices, simply using the following command:
 
 ```julia
-2×2 Matrix{ComplexF64}:
- 1.0+0.0im  0.0+0.0im
- 0.0+0.0im  1.0+0.0im
-2×2 Matrix{ComplexF64}:
- -1.0+0.0im   0.0+0.0im
-  0.0+0.0im  -1.0+0.0im
-2×2 Matrix{ComplexF64}:
- 0.0+0.0im  -1.0+0.0im
- 1.0+0.0im   0.0+0.0im
-2×2 Matrix{ComplexF64}:
-  0.0+0.0im  1.0+0.0im
- -1.0+0.0im  0.0+0.0im
-2×2 Matrix{ComplexF64}:
- 0.0+0.0im  1.0+0.0im
- 1.0+0.0im  0.0+0.0im
-2×2 Matrix{ComplexF64}:
-  0.0+0.0im  -1.0+0.0im
- -1.0+0.0im   0.0+0.0im
-2×2 Matrix{ComplexF64}:
- 1.0+0.0im   0.0+0.0im
- 0.0+0.0im  -1.0+0.0im
-2×2 Matrix{ComplexF64}:
- -1.0+0.0im  0.0+0.0im
-  0.0+0.0im  1.0+0.0im
-2×2 Matrix{ComplexF64}:
- -1.0+0.0im   0.0+0.0im
-  0.0+0.0im  -1.0+0.0im
-2×2 Matrix{ComplexF64}:
- 1.0+0.0im  0.0+0.0im
- 0.0+0.0im  1.0+0.0im
-2×2 Matrix{ComplexF64}:
-  0.0+0.0im  1.0+0.0im
- -1.0+0.0im  0.0+0.0im
-2×2 Matrix{ComplexF64}:
- 0.0+0.0im  -1.0+0.0im
- 1.0+0.0im   0.0+0.0im
-2×2 Matrix{ComplexF64}:
-  0.0+0.0im  -1.0+0.0im
- -1.0+0.0im   0.0+0.0im
-2×2 Matrix{ComplexF64}:
- 0.0+0.0im  1.0+0.0im
- 1.0+0.0im  0.0+0.0im
-2×2 Matrix{ComplexF64}:
- -1.0+0.0im  0.0+0.0im
-  0.0+0.0im  1.0+0.0im
-2×2 Matrix{ComplexF64}:
- 1.0+0.0im   0.0+0.0im
- 0.0+0.0im  -1.0+0.0im
+rep = irreps(g)[end]
+```
+
+The output is a list of matrices:
+
+```julia
+julia> display.(rep)
+3×3 Matrix{Float64}:
+ 1.0  0.0  0.0
+ 0.0  1.0  0.0
+ 0.0  0.0  1.0
+3×3 Matrix{Float64}:
+ 1.0   0.0   0.0
+ 0.0  -1.0   0.0
+ 0.0   0.0  -1.0
+3×3 Matrix{Float64}:
+ -1.0   0.0  0.0
+  0.0  -1.0  0.0
+  0.0   0.0  1.0
+3×3 Matrix{Float64}:
+ -1.0  0.0   0.0
+  0.0  1.0   0.0
+  0.0  0.0  -1.0
+3×3 Matrix{Float64}:
+ 0.0  0.0  1.0
+ 1.0  0.0  0.0
+ 0.0  1.0  0.0
+3×3 Matrix{Float64}:
+ 0.0   0.0  -1.0
+ 1.0   0.0   0.0
+ 0.0  -1.0   0.0
+3×3 Matrix{Float64}:
+  0.0   0.0  1.0
+ -1.0   0.0  0.0
+  0.0  -1.0  0.0
+3×3 Matrix{Float64}:
+  0.0  0.0  -1.0
+ -1.0  0.0   0.0
+  0.0  1.0   0.0
+3×3 Matrix{Float64}:
+ 0.0  1.0  0.0
+ 0.0  0.0  1.0
+ 1.0  0.0  0.0
+3×3 Matrix{Float64}:
+ 0.0  -1.0   0.0
+ 0.0   0.0  -1.0
+ 1.0   0.0   0.0
+3×3 Matrix{Float64}:
+  0.0  -1.0  0.0
+  0.0   0.0  1.0
+ -1.0   0.0  0.0
+3×3 Matrix{Float64}:
+  0.0  1.0   0.0
+  0.0  0.0  -1.0
+ -1.0  0.0   0.0
 ```
 
