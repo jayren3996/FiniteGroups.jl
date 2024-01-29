@@ -18,7 +18,7 @@ struct PermutationGroup <: AbstractFiniteGroup
     operations::Vector{Permutation}
 end
 
-function Base.display(g::PointGroup)
+function Base.display(g::PermutationGroup)
     println("Permutation group : $(name(g))")
     println("Group order       : $(order(g))")
     println("Classes           : $(length(class(g)))")
