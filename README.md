@@ -58,7 +58,7 @@ g = FiniteGroup(multab)
 We can calculate the character table of a finite group using the command
 
 ```julia
-tab = character(g)
+tab = charactertable(g)
 ```
 
 If group `g` is chosen to be the pointgroup Oh, the displayed result is:
