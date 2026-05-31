@@ -48,6 +48,16 @@ function proj_to_irrep(
     vcat([proj_to_irrep(rep, irep, R=R) for irep in ireps]...)
 end
 #-------------------------------------------------------------------------------
+"""
+    block_decomposition(rep, group; R=true)
+    block_decomposition(rep, group_name::AbstractString; R=true)
+    block_decomposition(rep; R=true)
+
+Decompose a (reducible) representation `rep` of `group` into irreducible blocks,
+returning transformation matrices `Sᵢ` such that `Sᵢ' * rep[g] * Sᵢ` is
+irreducible. Pass `R=true` for real blocks. When no group is given it is
+reconstructed from `rep` (which must then be a faithful representation).
+"""
 function block_decomposition(
     rep::AbstractVector{<:AbstractMatrix},
     group::AbstractFiniteGroup;
@@ -69,7 +79,7 @@ end
 #-------------------------------------------------------------------------------
 function block_decomposition(rep::AbstractVector{<:AbstractMatrix}; R::Bool=true)
     n = length(rep)
-    multab = Matrix{Integer}(undef, n, n)
+    multab = Matrix{Int}(undef, n, n)
     for i=1:n, j=1:n
         gij = rep[i]*rep[j]
         gij_index = 0

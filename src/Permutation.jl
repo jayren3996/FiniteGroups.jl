@@ -18,16 +18,32 @@ struct PermutationGroup <: AbstractFiniteGroup
     operations::Vector{Permutation}
 end
 
-function Base.display(g::PermutationGroup)
-    println("Permutation group : $(name(g))")
-    println("Group order       : $(order(g))")
-    println("Classes           : $(length(class(g)))")
+function Base.show(io::IO, ::MIME"text/plain", g::PermutationGroup)
+    println(io, "Permutation group : $(name(g))")
+    println(io, "Group order       : $(order(g))")
+    print(io,   "Classes           : $(length(class(g)))")
 end
 
 operation(g::PermutationGroup) = g.operations
 operation(g::PermutationGroup, i) = g.operations[i]
 
 export permutationgroup
+"""
+    permutationgroup(gens::AbstractVector{<:Permutation}; name="Unnamed Group")
+    permutationgroup(n::Integer)
+
+Build a permutation group: either close a set of generating permutations (see
+[`cycles`](@ref) and [`permutation`](@ref)) into a full group, or, given an
+integer `n`, construct the symmetric group `Sₙ`.
+
+# Examples
+```julia
+julia> permutationgroup(4)          # S₄
+Permutation group : S4
+Group order       : 24
+Classes           : 5
+```
+"""
 function permutationgroup(gens::AbstractVector{<:Permutation}; name::String="Unnamed Group")
     multab, eles = generate_group(gens)
     ginv = group_inverse(multab)
@@ -52,8 +68,7 @@ function Base.string(p::Permutation)
     end
     str
 end
-Base.repr(p::Permutation) = string(p)
-Base.display(p::Permutation) = println(string(p))
+Base.show(io::IO, p::Permutation) = print(io, string(p))
 
 Base.isequal(p1::Permutation, p2::Permutation) = isequal(p1.M, p2.M)
 Base.isless(p1::Permutation, p2::Permutation) = isless(reshape(p1.M, :), reshape(p2.M, :))

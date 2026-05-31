@@ -15,17 +15,19 @@ The identity element are 1 by default.
 """
 abstract type AbstractFiniteGroup end
 
-function Base.display(g::AbstractFiniteGroup)
-    println("Finite group : $(name(g))")
-    println("Group order  : $(order(g))")
-    println("Classes      : $(length(class(g)))")
+function Base.show(io::IO, ::MIME"text/plain", g::AbstractFiniteGroup)
+    println(io, "Finite group : $(name(g))")
+    println(io, "Group order  : $(order(g))")
+    print(io,   "Classes      : $(length(class(g)))")
 end
+Base.show(io::IO, g::AbstractFiniteGroup) = print(io, nameof(typeof(g)), "(\"", name(g), "\", order ", order(g), ")")
 
 include("FiniteGroup.jl")
 include("Character.jl")
 include("Representation.jl")
 include("ProjReps.jl")
 include("Decomposition.jl")
+include("Dixon.jl")
 include("PointGroups.jl")
 include("Permutation.jl")
 include("Precompile.jl")

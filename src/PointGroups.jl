@@ -11,13 +11,29 @@ struct PointGroup <: AbstractFiniteGroup
     operations::Vector{String}
 end
 
-function Base.display(g::PointGroup)
-    println("Point group : $(name(g))")
-    println("Group order : $(order(g))")
-    println("Classes     : $(length(class(g)))")
+function Base.show(io::IO, ::MIME"text/plain", g::PointGroup)
+    println(io, "Point group : $(name(g))")
+    println(io, "Group order : $(order(g))")
+    print(io,   "Classes     : $(length(class(g)))")
 end
 
 export pointgroup
+"""
+    pointgroup(i::Integer)
+    pointgroup(s::AbstractString)
+
+Construct one of the 32 crystallographic point groups, selected by index `1:32`
+or by its Schoenflies symbol (e.g. `"Oh"`, `"Td"`, `"C3v"`). The index ordering
+follows the standard sequence `"C1"`=1, `"Ci"`=2, …, `"Oh"`=32.
+
+# Examples
+```julia
+julia> pointgroup("Oh")
+Point group : Oh
+Group order : 48
+Classes     : 10
+```
+"""
 function pointgroup(i::Integer)
     multab = PointGroupMultiplicationTables[i]
     ginv = PointGroupInverses[i]
@@ -97,7 +113,22 @@ function pg_irrep_index(g::PointGroup, χ::AbstractVector)
     k
 end
 
-function charactertable(g::PointGroup)
+"""
+    charactertable(g::PointGroup; method=:table, tol=1e-7)
+
+Character table of a point group. By default (`method = :table`) the standard
+table bundled with the package is returned, with conventional irrep labels.
+`method = :burnside` or `:dixon` recomputes it (see the
+`AbstractFiniteGroup` method).
+"""
+function charactertable(g::PointGroup; method::Symbol=:table, tol::Real=1e-7)
+    if method === :dixon
+        return dixon_table(g, tol=tol)
+    elseif method === :burnside
+        return burnside(g, class_multab(g), tol=tol)
+    elseif method !== :table
+        error("charactertable: unknown method :$method (use :table, :burnside, or :dixon).")
+    end
     GI = groupindex(g)
     tabmat = PointGroupCharacterTables[GI]
     tab = [Characters(g, tabmat[i,:]) for i = 1:size(tabmat, 1)]

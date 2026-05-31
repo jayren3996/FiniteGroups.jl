@@ -2,27 +2,29 @@
 # Type: Characters
 #-------------------------------------------------------------------------------
 struct Characters{T <: Number, Tg <: AbstractFiniteGroup}
-    χ::AbstractVector{T}
+    χ::Vector{T}
     R::Int
     g::Tg
 end
 
 function Characters(g::AbstractFiniteGroup, χ::AbstractVector{<:Number})
     R = check_real_rep(g, χ)
-    Characters(isone(R) ? real.(χ) : χ, R, g)
+    # `collect` so a view/range/transpose-row also lands in the concrete `Vector{T}` field.
+    Characters(isone(R) ? real.(χ) : collect(χ), R, g)
 end
 #-------------------------------------------------------------------------------
-function Base.display(c::Characters)
+function Base.show(io::IO, ::MIME"text/plain", c::Characters)
     reality = if c.R == 1
         "Real"
-    elseif c.R == 0 Complex
+    elseif c.R == 0
         "Complex"
     else
         "Pseudo-real"
     end
-    println("Characters of $reality representation of $(name(c.g)):")
-    println(c.χ)
+    println(io, "Characters of $reality representation of $(name(c.g)):")
+    print(io, c.χ)
 end
+Base.show(io::IO, c::Characters) = print(io, "Characters(", c.χ, ")")
 #-------------------------------------------------------------------------------
 Base.getindex(c::Characters, i) = c.χ[i]
 Base.length(c::Characters) = length(c.χ)
@@ -73,7 +75,7 @@ function CharacterTable(tab::Vector{Characters})
     CharacterTable(tab, names)
 end
 #-------------------------------------------------------------------------------
-function Base.display(ct::CharacterTable)
+function Base.show(io::IO, ::MIME"text/plain", ct::CharacterTable)
     g = ct.tab[1].g
     mats = Matrix(ct)
     n = size(mats, 1)+1
@@ -82,8 +84,9 @@ function Base.display(ct::CharacterTable)
     out[1, 2:end] .= [name(g, cls[1]) for cls in class(g)]
     out[2:end, 1] .= ct.names
     out[2:end, 2:end] .= beautify.(mats)
-    display(out)
+    show(io, MIME"text/plain"(), out)
 end
+Base.show(io::IO, ct::CharacterTable) = print(io, "CharacterTable(", name(ct.tab[1].g), ", ", length(ct), " irreps)")
 Base.Matrix(ct::CharacterTable) = vcat((transpose(c.χ) for c in ct.tab)...)
 Base.length(ct::CharacterTable) = length(ct.tab)
 Base.size(ct::CharacterTable) = (length(ct.tab), length(ct.tab[1]))
@@ -97,14 +100,22 @@ Base.getindex(ct::CharacterTable, i) = ct.tab[i]
 #-------------------------------------------------------------------------------
 export charactertable
 """
-    charactertable(g::AbstractFiniteGroup; method)
+    charactertable(g::AbstractFiniteGroup; method=:burnside, tol=1e-7)
 
-Return the character table of group `g`.
-Use Burnside's method.
+Return the character table of group `g` as a [`CharacterTable`](@ref).
+
+`method = :burnside` (default) uses a fast floating-point eigenvalue method;
+`method = :dixon` computes the table exactly over a finite field (see
+[`dixon`](@ref)), avoiding floating-point tolerances at some extra cost.
 """
-function charactertable(g::AbstractFiniteGroup; tol::Real=1e-7)
-    h = class_multab(g)
-    burnside(g, h, tol=tol)
+function charactertable(g::AbstractFiniteGroup; method::Symbol=:burnside, tol::Real=1e-7)
+    if method === :dixon
+        dixon_table(g, tol=tol)
+    elseif method === :burnside
+        burnside(g, class_multab(g), tol=tol)
+    else
+        error("charactertable: unknown method :$method (use :burnside or :dixon).")
+    end
 end
 
 #-------------------------------------------------------------------------------

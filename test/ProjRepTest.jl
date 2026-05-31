@@ -1,9 +1,8 @@
-include("$(@__DIR__)/../src/FiniteGroups.jl")
-using .FiniteGroups, LinearAlgebra, Test
-import .FiniteGroups: double_group, check_rep, check_proj_coeff, check_unitary
+using FiniteGroups, LinearAlgebra, Test
+import FiniteGroups: double_group, check_rep, check_proj_coeff, check_unitary
 
 for gi = 1:32
-    g = pointgroup(gi)
+    local g = pointgroup(gi)   # `local`: a global `g` leaks in from DecompTest.jl when included together
     ct = charactertable(g)
     @testset verbose = true "$(name(g)) Test" begin
         for i = 2:size(ct, 1)

@@ -1,6 +1,5 @@
-include("$(@__DIR__)/../src/FiniteGroups.jl")
-using .FiniteGroups, LinearAlgebra, Test
-import .FiniteGroups: check_rep
+using FiniteGroups, LinearAlgebra, Test
+import FiniteGroups: check_rep
 
 for gi = 1:32
     g = pointgroup(gi)

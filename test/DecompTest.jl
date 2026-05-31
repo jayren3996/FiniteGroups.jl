@@ -1,5 +1,4 @@
-include("$(@__DIR__)/../src/FiniteGroups.jl")
-using .FiniteGroups, LinearAlgebra, Test
+using FiniteGroups, LinearAlgebra, Test
 
 g = pointgroup("Oh")
 rreps = irreps(g, R=true)

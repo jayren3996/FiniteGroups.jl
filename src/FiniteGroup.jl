@@ -1,4 +1,20 @@
 export FiniteGroup
+"""
+    FiniteGroup(multab::AbstractMatrix{<:Integer}, name="Unnamed group")
+
+A finite group defined by its multiplication table `multab`, where `multab[i, j]`
+is the index of the product of elements `i` and `j` (element `1` is the identity).
+Element inverses, conjugacy classes and class sizes are computed on construction.
+Validate an untrusted table first with [`check_group`](@ref).
+
+# Examples
+```julia
+julia> FiniteGroup([1 2 3; 2 3 1; 3 1 2], "C3")   # cyclic group of order 3
+Finite group : C3
+Group order  : 3
+Classes      : 3
+```
+"""
 struct FiniteGroup{T <: Integer} <: AbstractFiniteGroup
     name::String
     multab::Matrix{T}
@@ -18,15 +34,57 @@ function FiniteGroup(
     FiniteGroup(name, multab, ginv, cls, clsv, mult)
 end
 
+"""
+    name(g) -> String
+
+Name of group `g`; `name(g, i)` is the label of element/operation `i`.
+"""
 name(g::AbstractFiniteGroup) = g.name
 name(::AbstractFiniteGroup, i::Integer) = string(i)
+
 Base.getindex(g::AbstractFiniteGroup, i, j) = g.multab[i, j]
+
+"""
+    inv(g, i)
+
+Index of the inverse of element `i` in group `g`.
+"""
 Base.inv(g::AbstractFiniteGroup, i) = g.inv[i]
+
+"""
+    class(g)    -> Vector{Vector{Int}}
+    class(g, i) -> Vector{Int}
+
+Conjugacy classes of `g`: all classes, or the elements of class `i`.
+See also [`inclass`](@ref) and [`mult`](@ref).
+"""
 class(g::AbstractFiniteGroup) = g.cls
 class(g::AbstractFiniteGroup, i) = g.cls[i]
+
+"""
+    inclass(g, i)
+
+Index of the conjugacy class containing element `i`.
+"""
 inclass(g::AbstractFiniteGroup, i) = g.clsv[i]
+
+"""
+    mult(g)    -> Vector{Int}
+    mult(g, i) -> Int
+
+Size of each conjugacy class, or of class `i` (the class multiplicity). This is
+*not* element multiplication — use `g[i, j]` for the product of elements `i`, `j`.
+"""
 mult(g::AbstractFiniteGroup) = g.mult
 mult(g::AbstractFiniteGroup, i) = g.mult[i]
+
+"""
+    order(g)    -> Int
+    order(g, i) -> Int
+
+Order of the group `g` (number of elements), or the order of element `i`
+(the smallest `k > 0` with `iᵏ = 1`).
+"""
 order(g::AbstractFiniteGroup) = length(g.inv)
 function order(g::AbstractFiniteGroup, i::Integer)
     ord = 1
@@ -102,8 +160,13 @@ function collect_group(vec::AbstractVector{<:Integer}, NG::Integer)
     groups
 end
 
+export check_group
 """
-Check whether a multiplication table
+    check_group(multab) -> Bool
+
+Validate that `multab` is a genuine group multiplication table: element `1` is the
+identity, the operation is associative, and every row and column is a permutation.
+Throws an informative error on the first violation; returns `true` otherwise.
 """
 function check_group(multab)
     n = size(multab, 1)

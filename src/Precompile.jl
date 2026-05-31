@@ -1,48 +1,25 @@
-precompile(beautify, (Float64,))
-precompile(beautify, (ComplexF64,))
-precompile(spectrum_split, (Vector{Float64},))
-precompile(spectrum_split, (Vector{ComplexF64},))
-precompile(class_multab, (FiniteGroup,))
-precompile(class_multab, (PermutationGroup,))
-precompile(vec_split, (Matrix{Float64}, Matrix{Float64}))
-precompile(vec_split, (Matrix{Float64}, Matrix{ComplexF64}))
-precompile(vec_split, (Matrix{ComplexF64}, Matrix{Float64}))
-precompile(vec_split, (Matrix{ComplexF64}, Matrix{ComplexF64}))
-precompile(normalize_chi!, (FiniteGroup, Vector{Float64}))
-precompile(normalize_chi!, (FiniteGroup, Vector{ComplexF64}))
-precompile(normalize_chi!, (PermutationGroup, Vector{Float64}))
-precompile(normalize_chi!, (PermutationGroup, Vector{ComplexF64}))
-precompile(burnside, (FiniteGroup, Array{Int64, 3}))
-precompile(charactertable, (FiniteGroup,))
-precompile(charactertable, (PointGroup,))
-precompile(charactertable, (PermutationGroup,))
-precompile(regular_rep, (FiniteGroup,))
-precompile(regular_rep, (PointGroup,))
-precompile(regular_rep, (PermutationGroup,))
-precompile(proj_operator, (Vector{Matrix{Float64}}, Vector{Float64}, FiniteGroup))
-precompile(proj_operator, (Vector{Matrix{Float64}}, Vector{ComplexF64}, FiniteGroup))
-precompile(proj_operator, (Vector{Matrix{ComplexF64}}, Vector{Float64}, FiniteGroup))
-precompile(proj_operator, (Vector{Matrix{ComplexF64}}, Vector{ComplexF64}, FiniteGroup))
-precompile(proj_operator, (Vector{Matrix{Float64}}, Vector{Float64}, PointGroup))
-precompile(proj_operator, (Vector{Matrix{Float64}}, Vector{ComplexF64}, PointGroup))
-precompile(proj_operator, (Vector{Matrix{ComplexF64}}, Vector{Float64}, PointGroup))
-precompile(proj_operator, (Vector{Matrix{ComplexF64}}, Vector{ComplexF64}, PointGroup))
-precompile(proj_operator, (Vector{Matrix{Float64}}, Vector{Float64}, PermutationGroup))
-precompile(proj_operator, (Vector{Matrix{Float64}}, Vector{ComplexF64}, PermutationGroup))
-precompile(proj_operator, (Vector{Matrix{ComplexF64}}, Vector{Float64}, PermutationGroup))
-precompile(proj_operator, (Vector{Matrix{ComplexF64}}, Vector{ComplexF64}, PermutationGroup))
-precompile(unitaryeigen, (Matrix{Float64},))
-precompile(unitaryeigen, (Matrix{ComplexF64},))
-precompile(unitarysqrt, (Matrix{Float64},))
-precompile(unitarysqrt, (Matrix{ComplexF64},))
-precompile(transform_rep, (Matrix{Float64}, Vector{Matrix{Float64}}, Matrix{Float64}))
-precompile(transform_rep, (Matrix{Float64}, Vector{Matrix{ComplexF64}}, Matrix{Float64}))
-precompile(transform_rep, (Matrix{ComplexF64}, Vector{Matrix{ComplexF64}}, Matrix{ComplexF64}))
-precompile(transform_rep, (Matrix{ComplexF64}, Vector{Matrix{Float64}}, Matrix{ComplexF64}))
-precompile(krylov_space, (Vector{Matrix{Float64}}, Vector{Float64}, Int64))
-precompile(krylov_space, (Vector{Matrix{ComplexF64}}, Vector{ComplexF64}, Int64))
-precompile(find_least_degen, (Vector{Matrix{Float64}}, Int64))
-precompile(find_least_degen, (Vector{Matrix{ComplexF64}}, Int64))
-precompile(irreps, (PointGroup,))
-precompile(irreps, (PointGroup, Vector{Float64}))
-precompile(irreps, (PointGroup, Vector{ComplexF64}))
+# Precompilation workload.
+#
+# Run a small but representative set of calls during precompilation only
+# (`jl_generating_output() == 1`) so the actual hot signatures — including the
+# sparse-integer regular-representation path used by `irreps` — are baked into
+# the precompile cache. This replaces a hand-maintained `precompile(...)` list
+# whose concrete signatures had drifted from the real call sites (e.g. it
+# precompiled dense `proj_operator` while the hot call is sparse-integer).
+if ccall(:jl_generating_output, Cint, ()) == 1
+    let
+        # Point-group path: bundled data, Burnside table, projected irreps.
+        gp = pointgroup("D3")
+        ctp = charactertable(gp)
+        irreps(gp, ctp)
+        irreps(gp; R=true)
+
+        # Generic FiniteGroup path: Burnside from a multiplication table.
+        gf = FiniteGroup([1 2 3; 2 3 1; 3 1 2], "C3")
+        irreps(gf)
+
+        # Permutation-group path.
+        gs = permutationgroup(3)
+        irreps(gs)
+    end
+end

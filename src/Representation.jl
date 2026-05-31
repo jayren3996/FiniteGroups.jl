@@ -1,8 +1,17 @@
 export irreps
 """
-    irreps(g::FiniteGroup; χ::AbstractVector)
+    irreps(g::AbstractFiniteGroup; R=false)
+    irreps(g::AbstractFiniteGroup, χ)
 
-Get the irreducible representations.
+Compute the irreducible representations of `g`.
+
+The keyword form returns every irrep (one `Vector` of representation matrices,
+indexed by group element, per irrep); pass `R=true` for real (orthogonal) irreps
+instead of complex ones. Alternatively pass a single character vector `χ` (or a
+`Characters`/`CharacterTable`/character matrix) to project out only the
+corresponding irrep(s).
+
+See also [`charactertable`](@ref) and [`block_decomposition`](@ref).
 """
 function irreps(g::AbstractFiniteGroup, χ::AbstractVector)
     isone(χ[1]) && return [χ[inclass(g, i)] * ones(1,1) for i = 1:order(g)]
@@ -43,15 +52,15 @@ function regular_rep(g::AbstractFiniteGroup)
 end
 #-------------------------------------------------------------------------------
 function proj_operator(r::AbstractVector{<:AbstractMatrix}, χ::AbstractVector{<:Number}, g::AbstractFiniteGroup)
-    dtype = promote_type(eltype(χ), eltype.(r)...)
+    dtype = promote_type(eltype(χ), eltype(eltype(r)))
     m = zeros(dtype, size(r[1]))
     if length(χ) == length(class(g))
         for i = 1:order(g)
-            m += conj(χ[inclass(g, i)]) * r[i]
+            m .+= conj(χ[inclass(g, i)]) .* r[i]
         end
     elseif length(χ) == order(g)
         for i = 1:order(g)
-            m += χ[i] * r[i]
+            m .+= χ[i] .* r[i]
         end
     else
         error("Invalid length $(length(χ)) for χ.")
@@ -60,10 +69,10 @@ function proj_operator(r::AbstractVector{<:AbstractMatrix}, χ::AbstractVector{<
 end
 
 function proj_operator(r::AbstractVector{<:AbstractMatrix}, χ::AbstractVector{<:Number})
-    dtype = promote_type(eltype(χ), eltype.(r)...)
+    dtype = promote_type(eltype(χ), eltype(eltype(r)))
     m = zeros(dtype, size(r[1]))
     for i = 1:length(r)
-        m += χ[i] * r[i]
+        m .+= χ[i] .* r[i]
     end
     m
 end
@@ -82,8 +91,10 @@ function project_out_rep(
     end
     vsi = vs'
     classes = class(g)
+    # NB: BLAS-bound matmul — left serial so internal BLAS threads parallelize
+    # without Julia-thread oversubscription (which regressed wall time).
     preg = Vector{Matrix{eltype(vs)}}(undef, length(classes))
-    @threads for i = 1:length(classes)
+    for i = 1:length(classes)
         preg[i] = vsi * reg[classes[i][1]] * vs
     end
     v0 = find_least_degen(preg, D, tol=tol)
@@ -154,14 +165,14 @@ Check whether a representation is real/complex/pseudo-real:
 """
 function check_real_rep(g::AbstractFiniteGroup, χ)
     n = sum(χ[inclass(g, g[i,i])] for i=1:order(g)) / order(g)
-    if abs(n-1) < 1e-7          # Real 
+    if abs(n-1) < 1e-7          # Frobenius–Schur +1: real
         1
-    elseif abs(n+1) < 1e-7      # Complex 
+    elseif abs(n+1) < 1e-7      # Frobenius–Schur -1: pseudo-real (quaternionic)
         -1
-    elseif abs(n) < 1e-7        # Pseudo-real
+    elseif abs(n) < 1e-7        # Frobenius–Schur  0: complex
         0
     else
-        error("Sum of χ(g²) = $n ≠ ±g,0")
+        error("Frobenius–Schur indicator (1/|G|)∑χ(g²) = $n ∉ {1, 0, -1}.")
     end
 end
 #-------------------------------------------------------------------------------
@@ -183,7 +194,7 @@ function real_rep(r::AbstractVector{<:AbstractMatrix})
     W = unitarysqrt(U)
     Wi = W'
     rep = Vector{Matrix{Float64}}(undef, length(r))
-    Threads.@threads for i = 1:length(r)
+    for i = 1:length(r)
         rep[i] = real.(Wi * r[i] * W)
     end
     rep
@@ -238,7 +249,7 @@ The inputs is `U`, `D1`, and `V`, the output is:
 """
 function transform_rep(U::AbstractMatrix{Tu}, D1::AbstractVector{<:AbstractMatrix{Tr}}, V::AbstractMatrix{Tv}) where {Tu, Tr, Tv}
     D2 = Vector{Matrix{promote_type(Tu, Tr, Tv)}}(undef, length(D1))
-    @threads for i = 1:length(D1)
+    for i = 1:length(D1)
         D2[i] = U * D1[i] * V
     end
     D2
@@ -260,10 +271,16 @@ The eigen vectors are unitary.
 function unitaryeigen(U::AbstractMatrix)
     val, vec = eigen(U)
     # Require the eigen vector of a unitary matrix to be unitary.
-    # Here we enforce this by orthogonalized the vectors in the degenerate space.
+    # Here we enforce this by orthogonalizing the vectors in the degenerate space.
+    # Degenerate eigenvalues are exactly equal in exact arithmetic; snap each
+    # cluster to its mean so that branch-sensitive callers (e.g. the √ in
+    # `unitarysqrt`) treat the whole cluster on a single branch rather than
+    # straddling the cut. Without this, eigenvalues ≈ -1 ± 0im pick mixed ±i
+    # square roots and `real_rep` returns non-unitary reps (e.g. Oh T-irreps).
     for s in spectrum_split(val)
         isone(length(s)) && continue
         vec[:, s] .= svd(vec[:, s]).U
+        val[s] .= sum(@view val[s]) / length(s)
     end
     val, vec
 end

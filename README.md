@@ -1,15 +1,20 @@
 # FiniteGroups.jl
- Julia package for finite group theory calculation.
+
+A Julia package for finite group theory: conjugacy classes, character tables,
+(numerical) irreducible representations, realification, and projective /
+double-group representations, with the 32 crystallographic point groups and the
+symmetric groups built in.
 
 ## Installation
-In julia `REPL`, run the following script:
+
+In the Julia `REPL`, run:
 
 ```julia
 using Pkg
 Pkg.add("FiniteGroups")
 ```
 
-Or, install the package directly from the GitHub URL:
+Or install directly from the GitHub URL:
 
 ```julia
 using Pkg
@@ -18,50 +23,63 @@ Pkg.add(url="https://github.com/jayren3996/FiniteGroups.jl")
 
 ## Examples
 
-### Create a Finite Group
+All examples assume the package is loaded:
 
-We can creat a point group using the group number or group name. For example, the following command:
+```julia
+using FiniteGroups
+```
+
+### Create a finite group
+
+Create a point group by its number or its Schoenflies name. For example:
 
 ```julia
 julia> g = pointgroup(32)
 Point group : Oh
 Group order : 48
 Classes     : 10
-```
 
-or use the point group name (for example Th group): 
-
-```julia
 julia> g = pointgroup("Th")
 Point group : Th
 Group order : 24
 Classes     : 8
 ```
 
-In general, given the multiplication table `multab` of the group, we can create the group object using the command:
+The symmetric group `Sₙ` is available via `permutationgroup`:
+
+```julia
+julia> permutationgroup(4)
+Permutation group : S4
+Group order       : 24
+Classes           : 5
+```
+
+In general, given a multiplication table `multab`, create the group with the
+`FiniteGroup` constructor (call `check_group` first to validate an untrusted
+table):
 
 ```julia
 # Multiplication table of point group D3:
-multab = [ 
-	1  2  3  4  5  6
-	2  3  1  6  4  5
- 	3  1  2  5  6  4
- 	4  5  6  1  2  3
- 	5  6  4  3  1  2
- 	6  4  5  2  3  1
+multab = [
+    1  2  3  4  5  6
+    2  3  1  6  4  5
+    3  1  2  5  6  4
+    4  5  6  1  2  3
+    5  6  4  3  1  2
+    6  4  5  2  3  1
 ]
-g = FiniteGroup(multab)
+g = FiniteGroup(multab, "D3")
 ```
 
-### Character Table
+### Character table
 
-We can calculate the character table of a finite group using the command
+Compute the character table of a group with `charactertable`:
 
 ```julia
-tab = character(g)
+ctable = charactertable(g)
 ```
 
-If group `g` is chosen to be the pointgroup Oh, the displayed result is:
+For the point group `Oh` the result is:
 
 ```julia
 julia> charactertable(pointgroup("Oh"))
@@ -79,42 +97,47 @@ julia> charactertable(pointgroup("Oh"))
  "T1u"  3     -1         0         -1         1         -3       1         0           1        -1
 ```
 
-The `chartable` is of type `CharacterTable`, from which we can extract a specific set of characters:
+The returned `ctable` is a `CharacterTable`. Indexing with a single integer
+returns the `Characters` of one irrep (which also records whether it is real,
+complex, or pseudo-real):
 
 ```julia
+julia> ctable = charactertable(pointgroup("Oh"));
+
 julia> ctable[10]
 Characters of Real representation of Oh:
-[3.0, -1.0, 0.0, -1.0, 1.0, -3.0, 1.0, 0.0, 1.0, -1.0]
+[3, -1, 0, -1, 1, -3, 1, 0, 1, -1]
 ```
 
-The `CharacterTable` can be sliced as a matrix:
+It can also be sliced like a matrix; rows and submatrices come back as plain
+arrays:
 
 ```julia
-julia> ctable[3,:]
-10-element Vector{Float64}:
-  1.0
-  1.0
-  1.0
- -1.0
- -1.0
-  1.0
-  1.0
-  1.0
- -1.0
- -1.0
-julia> ctable[1:3,:]
-3×10 Matrix{Float64}:
- 1.0  1.0  1.0   1.0   1.0   1.0   1.0   1.0   1.0   1.0
- 1.0  1.0  1.0   1.0   1.0  -1.0  -1.0  -1.0  -1.0  -1.0
- 1.0  1.0  1.0  -1.0  -1.0   1.0   1.0   1.0  -1.0  -1.0
+julia> ctable[3, :]
+10-element Vector{Int64}:
+  1
+  1
+  1
+ -1
+ -1
+  1
+  1
+  1
+ -1
+ -1
+
+julia> ctable[1:3, :]
+3×10 Matrix{Int64}:
+ 1  1  1   1   1   1   1   1   1   1
+ 1  1  1   1   1  -1  -1  -1  -1  -1
+ 1  1  1  -1  -1   1   1   1  -1  -1
 ```
 
-### Irreducible Representation
-
-We can also compute all irreducible representations of a finite group `g`, using the command `irreps`. For example, the character table for point group T is:
+Groups with complex irreducible representations return complex characters, e.g.
+the point group `T`:
 
 ```julia
-julia> g = pointgroup("T"); charactertable(g)
+julia> charactertable(pointgroup("T"))
 5×5 Matrix{Any}:
  ""        "1"         "2₀₀₁"       "3₁₁₁⁺"          "3₁₁₁⁻"
  "A"   1.0+0.0im   1.0+0.0im    1.0+0.0im        1.0+0.0im
@@ -123,63 +146,44 @@ julia> g = pointgroup("T"); charactertable(g)
  "T"   3.0+0.0im  -1.0+0.0im    0.0+0.0im        0.0+0.0im
 ```
 
-We see there is a three-dimensional T representation. To obtain the representation matrices, simply using the following command:
+### Irreducible representations
+
+Compute all irreducible representations of a group with `irreps`. It returns one
+entry per irrep; each entry is a vector of representation matrices indexed by
+group element:
 
 ```julia
-rep = irreps(g)[end]
+julia> g = pointgroup("T");
+
+julia> reps = irreps(g);
+
+julia> length(reps)          # T has 4 irreducible representations
+4
+
+julia> T = reps[end];        # the 3-dimensional irrep
+
+julia> length(T), size(T[1]) # 12 group elements, each a 3×3 matrix
+(12, (3, 3))
+
+julia> T[1]                  # the identity element
+3×3 Matrix{Float64}:
+ 1.0  0.0  0.0
+ 0.0  1.0  0.0
+ 0.0  0.0  1.0
+
+julia> T[5]
+3×3 Matrix{Float64}:
+ 0.0  0.0  1.0
+ 1.0  0.0  0.0
+ 0.0  1.0  0.0
 ```
 
-The output is a list of matrices:
+Pass `R=true` to obtain real (orthogonal) irreps, projecting complex ones into
+their real form:
 
 ```julia
-julia> display.(rep)
-3×3 Matrix{Float64}:
- 1.0  0.0  0.0
- 0.0  1.0  0.0
- 0.0  0.0  1.0
-3×3 Matrix{Float64}:
- 1.0   0.0   0.0
- 0.0  -1.0   0.0
- 0.0   0.0  -1.0
-3×3 Matrix{Float64}:
- -1.0   0.0  0.0
-  0.0  -1.0  0.0
-  0.0   0.0  1.0
-3×3 Matrix{Float64}:
- -1.0  0.0   0.0
-  0.0  1.0   0.0
-  0.0  0.0  -1.0
-3×3 Matrix{Float64}:
- 0.0  0.0  1.0
- 1.0  0.0  0.0
- 0.0  1.0  0.0
-3×3 Matrix{Float64}:
- 0.0   0.0  -1.0
- 1.0   0.0   0.0
- 0.0  -1.0   0.0
-3×3 Matrix{Float64}:
-  0.0   0.0  1.0
- -1.0   0.0  0.0
-  0.0  -1.0  0.0
-3×3 Matrix{Float64}:
-  0.0  0.0  -1.0
- -1.0  0.0   0.0
-  0.0  1.0   0.0
-3×3 Matrix{Float64}:
- 0.0  1.0  0.0
- 0.0  0.0  1.0
- 1.0  0.0  0.0
-3×3 Matrix{Float64}:
- 0.0  -1.0   0.0
- 0.0   0.0  -1.0
- 1.0   0.0   0.0
-3×3 Matrix{Float64}:
-  0.0  -1.0  0.0
-  0.0   0.0  1.0
- -1.0   0.0  0.0
-3×3 Matrix{Float64}:
-  0.0  1.0   0.0
-  0.0  0.0  -1.0
- -1.0  0.0   0.0
+reps = irreps(g; R=true)
 ```
 
+A reducible representation can be split back into irreducible blocks with
+`block_decomposition`.

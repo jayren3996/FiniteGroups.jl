@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Julia
+/Manifest.toml
+/docs/build/
+/docs/Manifest.toml
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
