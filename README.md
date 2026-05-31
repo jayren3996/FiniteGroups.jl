@@ -27,9 +27,9 @@ point group, a symmetric group, or any group given as a multiplication table.
 The 32 crystallographic point groups ship with reference data — standard
 character tables, conventional Mulliken labels, and rotation matrices — so for
 those you get publication-style tables immediately. For an arbitrary group
-everything is computed from the multiplication table: a fast floating-point
-method (Burnside) by default, or an exact finite-field method (Dixon) when you
-want exact character values rather than floating point.
+everything is computed from the multiplication table: an exact finite-field
+method (Dixon) by default, or a floating-point method (Burnside) as a faster
+alternative when exact character values are not required.
 
 ## Installation
 
@@ -78,9 +78,9 @@ julia> length(reps), [size(r[1], 1) for r in reps]   # 3 irreps, of dimension 1,
   (`permutationgroup`, `cycles`, `permutation`).
 - **Any finite group** — build one from a multiplication table with
   `FiniteGroup`, and validate an untrusted table with `check_group`.
-- **Character tables, two ways** — `charactertable` via a fast floating-point
-  class-algebra method (Burnside), or `method=:dixon` for an exact result over a
-  finite field; `dixon` returns the raw exact character matrix.
+- **Character tables, two ways** — `charactertable` via an exact finite-field
+  class-algebra method (Dixon) by default, or `method=:burnside` for a
+  floating-point alternative; `dixon` returns the raw exact character matrix.
 - **Representations** — `irreps` for complex unitary irreps, `real_irreps` /
   `real_rep` for real forms (with the Frobenius–Schur indicator from
   `check_real_rep`), and `regular_rep` / `proj_operator` / `block_decomposition`
@@ -90,15 +90,14 @@ julia> length(reps), [size(r[1], 1) for r in reps]   # 3 irreps, of dimension 1,
 
 ## Two character-table methods
 
-`charactertable(g)` uses **Burnside's method** by default: it simultaneously
-diagonalizes the conjugacy-class algebra and reads off the irreducible
-characters. It is fast, but the entries are floating point and carry a small
-numerical tolerance.
+`charactertable(g)` uses **Dixon's method** by default: it diagonalizes the
+conjugacy-class algebra in a finite field 𝔽ₚ — chosen so the representations are
+defined there — and lifts the result back to characteristic zero. The characters
+come out exactly, with no floating-point eigenvalue tolerance.
 
-Passing `method=:dixon` switches to **Dixon's method**, which runs the same
-computation in a finite field 𝔽ₚ — chosen so the representations are defined
-there — and lifts the result back to characteristic zero. The characters are
-then obtained exactly, with no floating-point eigenvalue tolerance:
+Passing `method=:burnside` switches to **Burnside's method**, which performs the
+same class-algebra diagonalization with floating-point eigenvalues. It can be
+faster on large groups, at the cost of a small numerical tolerance:
 
 ```julia
 julia> charactertable(pointgroup("D3"); method=:dixon)   # same table, computed exactly

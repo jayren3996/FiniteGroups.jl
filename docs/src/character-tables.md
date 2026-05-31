@@ -23,12 +23,12 @@ Three algorithms are available through the `method` keyword:
 - **`:table`** — the standard table bundled with the package, with conventional
   irrep labels. This is the default for point groups, and is only available for
   them.
-- **`:burnside`** — a fast floating-point method that simultaneously
-  diagonalizes the class algebra. This is the default for every other group.
-  Entries are `Float64` / `ComplexF64` and carry small numerical error.
 - **`:dixon`** — Dixon's method: the table is computed *exactly* by working in a
   finite field ``\mathbb{F}_p`` and lifting the result back to characteristic
-  zero. Use it when you want exact character values rather than floating point.
+  zero. This is the default for every group other than the point groups.
+- **`:burnside`** — a floating-point method that simultaneously diagonalizes the
+  class algebra. Entries are `Float64` / `ComplexF64` and carry small numerical
+  error; pass `method=:burnside` to use it instead of the exact default.
 
 The bundled and computed tables agree (up to the ordering of the irreps). Here
 is the same group via Dixon's exact method:
@@ -38,7 +38,7 @@ charactertable(g; method=:dixon)
 ```
 
 For a group given only by its multiplication table, the bundled `:table` does
-not apply, but `:burnside` (default) and `:dixon` both do:
+not apply, but `:dixon` (default) and `:burnside` both do:
 
 ```@example ct
 s5 = permutationgroup(5)            # 7 classes ⇒ 7 irreducible characters

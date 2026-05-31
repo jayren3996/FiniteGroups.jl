@@ -63,10 +63,11 @@ Common eigenvectors (central characters ωᵣ, mod p) of the class matrices.
 
 The class matrices commute, so they are simultaneously diagonalizable over 𝔽ₚ.
 We refine a list of common eigenspaces one class matrix at a time: restrict each
-`hᵢ` to the current subspace `S` (solving `hᵢ S = S T` for the `d×d` matrix `T`)
-and split `S` by the eigenvalues of `T`. Iterating over all classes drives every
-eigenspace down to dimension one — robust even for small `p`, where no single
-combination of class matrices has enough distinct eigenvalues.
+`hᵢ` to the current subspace `S` (solving `hᵢ S = S T` for the `d×d` matrix `T`),
+take the eigenvalues of `T` as the roots of its characteristic polynomial over
+𝔽ₚ, and split `S` by the nullspace of each `T − λI`. Iterating over all classes
+drives every eigenspace down to dimension one — robust even for small `p`, where
+no single combination of class matrices has enough distinct eigenvalues.
 """
 function central_characters_modp(h::AbstractArray{<:Integer, 3}, p::Integer)
     NC = size(h, 1)
@@ -80,7 +81,7 @@ function central_characters_modp(h::AbstractArray{<:Integer, 3}, p::Integer)
                 continue
             end
             T = restrict_modp(S, view(h, i, :, :), p)
-            for λ = 0:p-1
+            for λ in eigvals_modp(T, p)
                 ns = nullspace_modp(T, λ, p)
                 size(ns, 2) > 0 && push!(new, mod.(S * ns, p))
             end
@@ -161,6 +162,11 @@ function lift_table(g::AbstractFiniteGroup, table::AbstractMatrix{<:Integer}, p:
         e = class(g, k)[1]
         m = order(g, e)
         z = powermod(Z, n ÷ m, p)               # primitive m-th root in 𝔽ₚ
+        zpow = Vector{Int}(undef, m)            # zpow[j+1] = zʲ mod p, j = 0:m-1
+        zpow[1] = 1
+        for j = 2:m
+            zpow[j] = mod(zpow[j-1] * z, p)
+        end
         invm = invmod(mod(m, p), p)
         pcls = Vector{Int}(undef, m)            # classes of gₖᵗ, t = 0:m-1
         x = 1
@@ -173,7 +179,7 @@ function lift_table(g::AbstractFiniteGroup, table::AbstractMatrix{<:Integer}, p:
             for l = 0:m-1
                 acc = 0
                 for t = 0:m-1
-                    acc = mod(acc + table[r, pcls[t+1]] * powermod(z, mod(-l * t, m), p), p)
+                    acc = mod(acc + table[r, pcls[t+1]] * zpow[mod(-l * t, m) + 1], p)
                 end
                 a = mod(acc * invm, p)
                 a = a > p ÷ 2 ? a - p : a        # symmetric representative
@@ -208,6 +214,72 @@ function nullspace_modp(M::AbstractMatrix{<:Integer}, λ::Integer, p::Integer)
         end
     end
     basis
+end
+
+"""
+Eigenvalues of `M` in 𝔽ₚ, ascending: the roots of its characteristic polynomial.
+
+We build the char poly with the division-free Samuelson–Berkowitz recurrence (so
+it holds even when the size exceeds `p`, e.g. elementary-abelian groups) and read
+off its roots by Horner-evaluating it across 𝔽ₚ. This replaces scanning a null
+space at every field element with one `O(d³)` polynomial and an `O(p·d)` sweep.
+"""
+function eigvals_modp(M::AbstractMatrix{<:Integer}, p::Integer)
+    c = charpoly_modp(M, p)
+    λs = Int[]
+    for λ = 0:p-1
+        v = 0
+        for ck in c
+            v = mod(v * λ + ck, p)
+        end
+        iszero(v) && push!(λs, λ)
+    end
+    λs
+end
+
+"""
+Characteristic polynomial of `M` over 𝔽ₚ via the Samuelson–Berkowitz algorithm,
+returned high-degree-first (`c[1]·xⁿ + … + c[n+1]`, monic with `c[1] = 1`).
+
+The recurrence is division-free, so it is valid for any prime `p` regardless of
+the matrix size `n` — unlike Faddeev–LeVerrier, which divides by `1:n`.
+"""
+function charpoly_modp(M::AbstractMatrix{<:Integer}, p::Integer)
+    n = size(M, 1)
+    result = [1]                                    # coeffs so far, high-degree-first
+    for i = 1:n
+        v = Vector{Int}(undef, i + 1)               # generating column of the iᵗʰ Toeplitz block
+        v[1] = 1
+        v[2] = mod(-M[i, i], p)
+        if i > 1
+            R = view(M, i, 1:i-1)
+            u = Vector{Int}(M[1:i-1, i])            # Aᵢ₋₁ʲ · Sᵢ, starting at j = 0
+            for j = 0:i-2
+                s = 0
+                for t = 1:i-1
+                    s = mod(s + R[t] * u[t], p)
+                end
+                v[3 + j] = mod(-s, p)               # −Rᵢ Aᵢ₋₁ʲ Sᵢ
+                if j < i - 2                         # advance u ← Aᵢ₋₁·u for the next power
+                    u2 = zeros(Int, i - 1)
+                    for a = 1:i-1, b = 1:i-1
+                        u2[a] = mod(u2[a] + M[a, b] * u[b], p)
+                    end
+                    u = u2
+                end
+            end
+        end
+        nr = zeros(Int, i + 1)                       # nr ← Tᵢ · result, Tᵢ lower-triangular Toeplitz of v
+        for col = 1:i
+            rc = result[col]
+            iszero(rc) && continue
+            for row = col:i+1
+                nr[row] = mod(nr[row] + v[row - col + 1] * rc, p)
+            end
+        end
+        result = nr
+    end
+    result
 end
 
 """
