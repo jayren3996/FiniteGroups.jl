@@ -27,7 +27,7 @@ end
     for nn = 2:5
         g = permutationgroup(nn)
         dx  = Matrix(charactertable(g; method=:dixon))
-        ref = Matrix(charactertable(g))                 # Burnside
+        ref = Matrix(charactertable(g; method=:burnside))   # explicit: default is now :dixon
         @test same_chartable(dx, ref)
     end
 end
@@ -38,7 +38,7 @@ end
     v4 = FiniteGroup([1 2 3 4; 2 1 4 3; 3 4 1 2; 4 3 2 1], "V4")
     for g in (c4, v4)
         @test same_chartable(Matrix(charactertable(g; method=:dixon)),
-                             Matrix(charactertable(g)))
+                             Matrix(charactertable(g; method=:burnside)))
     end
 end
 

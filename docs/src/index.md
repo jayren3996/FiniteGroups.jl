@@ -17,9 +17,9 @@ The package ships with reference data for the 32 crystallographic point groups:
 standard character tables, conventional Mulliken irrep labels, and the
 operations' rotation matrices. For those groups you get publication-style tables
 immediately. For an arbitrary group everything is computed from the
-multiplication table — a fast floating-point eigenvalue method (Burnside) by
-default, or an exact finite-field method (Dixon) when you need exact character
-values rather than floating point.
+multiplication table — an exact finite-field method (Dixon) by default, or a
+floating-point eigenvalue method (Burnside) as a faster alternative when exact
+character values are not required.
 
 ## Manual layout
 

@@ -32,7 +32,7 @@ end
 
 for n = 2:5
     g = permutationgroup(n)
-    χ = charactertable(g)
+    χ = charactertable(g; method=:burnside)
     R = irreps(g, χ)
     @testset verbose = true "$(name(g)) Test" begin
         @testset "Character" begin

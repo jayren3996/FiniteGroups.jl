@@ -100,15 +100,15 @@ Base.getindex(ct::CharacterTable, i) = ct.tab[i]
 #-------------------------------------------------------------------------------
 export charactertable
 """
-    charactertable(g::AbstractFiniteGroup; method=:burnside, tol=1e-7)
+    charactertable(g::AbstractFiniteGroup; method=:dixon, tol=1e-7)
 
 Return the character table of group `g` as a `CharacterTable`.
 
-`method = :burnside` (default) uses a fast floating-point eigenvalue method;
-`method = :dixon` computes the table exactly over a finite field (see
-[`dixon`](@ref)), avoiding floating-point tolerances at some extra cost.
+`method = :dixon` (default) computes the table exactly over a finite field (see
+[`dixon`](@ref)); `method = :burnside` uses an alternative floating-point
+eigenvalue method that is subject to numerical tolerances.
 """
-function charactertable(g::AbstractFiniteGroup; method::Symbol=:burnside, tol::Real=1e-7)
+function charactertable(g::AbstractFiniteGroup; method::Symbol=:dixon, tol::Real=1e-7)
     if method === :dixon
         dixon_table(g, tol=tol)
     elseif method === :burnside
