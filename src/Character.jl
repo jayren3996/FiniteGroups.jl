@@ -102,7 +102,7 @@ export charactertable
 """
     charactertable(g::AbstractFiniteGroup; method=:burnside, tol=1e-7)
 
-Return the character table of group `g` as a [`CharacterTable`](@ref).
+Return the character table of group `g` as a `CharacterTable`.
 
 `method = :burnside` (default) uses a fast floating-point eigenvalue method;
 `method = :dixon` computes the table exactly over a finite field (see

@@ -51,6 +51,18 @@ function regular_rep(g::AbstractFiniteGroup)
     rep
 end
 #-------------------------------------------------------------------------------
+"""
+    proj_operator(r, χ, g::AbstractFiniteGroup)
+    proj_operator(r, χ)
+
+Form the group-algebra operator `∑ᵢ cᵢ * r[i]` from a representation `r` (a
+vector of matrices, one per group element) and coefficients `χ`. Given a group
+`g`, `χ` may be a class function of length `length(class(g))`, in which case
+`cᵢ = conj(χ[inclass(g, i)])`, or a full length-`order(g)` vector with
+`cᵢ = χ[i]`. The two-argument form uses `cᵢ = χ[i]` directly. Projecting the
+regular representation with the rows of a character table is how [`irreps`](@ref)
+isolates each isotypic component.
+"""
 function proj_operator(r::AbstractVector{<:AbstractMatrix}, χ::AbstractVector{<:Number}, g::AbstractFiniteGroup)
     dtype = promote_type(eltype(χ), eltype(eltype(r)))
     m = zeros(dtype, size(r[1]))

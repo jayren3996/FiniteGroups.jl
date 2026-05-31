@@ -54,11 +54,39 @@ pointgroup(s::String) = pointgroup(PointGroupDict[s])
 
 export groupindex, operation, matrix, rotation, repname
 name(g::PointGroup, i::Integer) = operation(g, i)
+"""
+    groupindex(g::PointGroup)
+
+Index (1–32) of the point group `g` among the crystallographic point groups.
+"""
 groupindex(g::PointGroup) = PointGroupDict[name(g)]
+"""
+    operation(g)
+    operation(g, i)
+
+Symmetry operations of `g`: the whole vector, or the `i`-th element. For a
+[`pointgroup`](@ref) these are operation-name strings (`"E"`, `"C3"`, …); for a
+[`permutationgroup`](@ref) they are permutations.
+"""
 operation(g::PointGroup) = g.operations
 operation(g::PointGroup, i) = g.operations[i]
+"""
+    matrix(g::PointGroup[, i])
+
+Rotation matrices of the point group `g` in the stored (crystal-axis) basis:
+the whole vector, or the `i`-th operation. See [`rotation`](@ref) for the
+Cartesian form, which differs for hexagonal groups.
+"""
 matrix(g::PointGroup) = PointGroupRotationMatrices[groupindex(g)]
 matrix(g::PointGroup, i) = PointGroupRotationMatrices[groupindex(g)][i]
+"""
+    rotation(g::PointGroup[, i])
+
+Rotation matrices of the point group `g` in Cartesian coordinates: the whole
+vector, the `i`-th operation, or the operations indexed by a vector `i`. For
+hexagonal groups these differ from [`matrix`](@ref) by the change of basis to
+the hexagonal axes.
+"""
 function rotation(g::PointGroup)
     GI = groupindex(g)
     if HexagonalGroups[GI]
@@ -87,6 +115,14 @@ function rotation(g::PointGroup, i::AbstractVector{<:Integer})
     end
 end
 
+"""
+    repname(g::PointGroup, i::Integer; convention=1)
+    repname(g::PointGroup, χ::AbstractVector; convention=1)
+
+Conventional label of an irreducible representation of the point group `g`,
+selected by its index `i` or by its character vector `χ`. `convention` chooses
+between the two bundled Mulliken-style naming schemes.
+"""
 function repname(g::PointGroup, i::Integer; convention::Integer=1)
     if convention == 1
         PointGroupRepresentationNames[groupindex(g)][i]

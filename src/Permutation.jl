@@ -74,6 +74,13 @@ Base.isequal(p1::Permutation, p2::Permutation) = isequal(p1.M, p2.M)
 Base.isless(p1::Permutation, p2::Permutation) = isless(reshape(p1.M, :), reshape(p2.M, :))
 
 export permutation
+"""
+    permutation(M::AbstractMatrix{<:Integer})
+
+Construct a permutation from a two-column matrix `M`: each row `[a b]` means
+`a ↦ b`, and fixed points may be omitted. See [`cycles`](@ref) for
+disjoint-cycle notation.
+"""
 function permutation(M::AbstractMatrix{<:Integer})
     p = sortperm(view(M, :, 1))
     M = M[p, 1:2]
@@ -84,6 +91,15 @@ function permutation(M::AbstractMatrix{<:Integer})
 end
 
 export cycles
+"""
+    cycles(cyc...)
+
+Construct a permutation from disjoint cycles, each given as a vector or tuple of
+point labels; e.g. `cycles((1,2,3), (4,5))` is the permutation `(1 2 3)(4 5)`.
+With no cycles the identity permutation is returned. See [`permutation`](@ref)
+for the two-column mapping form and [`permutationgroup`](@ref) to close a set of
+generators into a group.
+"""
 function cycles(cyc::Union{AbstractVector{<:Integer}, Tuple}...)
     n = sum(length(c) for c in cyc)
     iszero(n) && (return Permutation(zeros(Int64, 0, 2)))

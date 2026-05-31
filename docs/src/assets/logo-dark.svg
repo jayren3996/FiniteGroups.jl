@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="FiniteGroups.jl">
+  <g fill="none" stroke="#5a5a5a" stroke-width="2">
+    <line x1="170" y1="100" x2="30" y2="100"/>
+    <line x1="135" y1="160.62" x2="65" y2="39.38"/>
+    <line x1="65" y1="160.62" x2="135" y2="39.38"/>
+  </g>
+  <polygon points="170,100 135,160.62 65,160.62 30,100 65,39.38 135,39.38"
+           fill="none" stroke="#e0e0e0" stroke-width="4" stroke-linejoin="round"/>
+  <g stroke="#1e1e20" stroke-width="2">
+    <circle cx="170" cy="100" r="13" fill="#9558B2"/>
+    <circle cx="135" cy="160.62" r="13" fill="#389826"/>
+    <circle cx="65" cy="160.62" r="13" fill="#CB3C33"/>
+    <circle cx="30" cy="100" r="13" fill="#9558B2"/>
+    <circle cx="65" cy="39.38" r="13" fill="#389826"/>
+    <circle cx="135" cy="39.38" r="13" fill="#CB3C33"/>
+  </g>
+</svg>
