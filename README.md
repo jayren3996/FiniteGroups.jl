@@ -1,189 +1,127 @@
-# FiniteGroups.jl
+<p align="center">
+  <img src="docs/src/assets/logo.svg" alt="FiniteGroups.jl" width="180"/>
+</p>
 
-A Julia package for finite group theory: conjugacy classes, character tables,
-(numerical) irreducible representations, realification, and projective /
-double-group representations, with the 32 crystallographic point groups and the
-symmetric groups built in.
+<h1 align="center">FiniteGroups.jl</h1>
+
+<p align="center">
+  <em>Character tables and representations of finite groups, in Julia.</em>
+</p>
+
+<p align="center">
+  <a href="https://jayren3996.github.io/FiniteGroups.jl/dev/"><img alt="Documentation (dev)" src="https://img.shields.io/badge/docs-dev-blue.svg"/></a>
+  <a href="https://github.com/jayren3996/FiniteGroups.jl/actions/workflows/CI.yml"><img alt="CI status" src="https://github.com/jayren3996/FiniteGroups.jl/actions/workflows/CI.yml/badge.svg"/></a>
+  <a href="https://github.com/jayren3996/FiniteGroups.jl/actions/workflows/documentation.yml"><img alt="Documentation build status" src="https://github.com/jayren3996/FiniteGroups.jl/actions/workflows/documentation.yml/badge.svg"/></a>
+  <a href="https://julialang.org/"><img alt="Julia" src="https://img.shields.io/badge/made%20with-Julia-9558B2.svg?logo=julia"/></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-yellow.svg"/></a>
+</p>
+
+---
+
+`FiniteGroups.jl` computes the representation theory of finite groups: conjugacy
+classes, character tables, and explicit matrix representations — including the
+real and projective (double-group) representations that appear in
+condensed-matter and molecular-symmetry problems. Hand it a crystallographic
+point group, a symmetric group, or any group given as a multiplication table.
+
+The 32 crystallographic point groups ship with reference data — standard
+character tables, conventional Mulliken labels, and rotation matrices — so for
+those you get publication-style tables immediately. For an arbitrary group
+everything is computed from the multiplication table: a fast floating-point
+method (Burnside) by default, or an exact finite-field method (Dixon) when you
+want exact character values rather than floating point.
 
 ## Installation
 
-In the Julia `REPL`, run:
+`FiniteGroups` is registered in Julia's General registry:
 
 ```julia
-using Pkg
-Pkg.add("FiniteGroups")
+pkg> add FiniteGroups
 ```
 
-Or install directly from the GitHub URL:
+Or directly from GitHub:
 
 ```julia
-using Pkg
-Pkg.add(url="https://github.com/jayren3996/FiniteGroups.jl")
+pkg> add https://github.com/jayren3996/FiniteGroups.jl
 ```
 
-## Examples
+Then load it with `using FiniteGroups`.
 
-All examples assume the package is loaded:
+## Quick start
 
 ```julia
-using FiniteGroups
+julia> using FiniteGroups
+
+julia> g = pointgroup("D3")          # a crystallographic point group, by Schoenflies symbol
+Point group : D3
+Group order : 6
+Classes     : 3
+
+julia> charactertable(g)             # standard table, with conventional Mulliken labels
+4×4 Matrix{Any}:
+ ""     "1"    "3₀₀₁⁺"    "2₋₁₁₀"
+ "A1"  1      1          1
+ "A2"  1      1         -1
+ "E"   2     -1          0
+
+julia> reps = irreps(g);             # explicit representation matrices, one vector per irrep
+
+julia> length(reps), [size(r[1], 1) for r in reps]   # 3 irreps, of dimension 1, 1, 2
+(3, [1, 1, 2])
 ```
 
-### Create a finite group
+## Features
 
-Create a point group by its number or its Schoenflies name. For example:
+- **Built-in groups** — all 32 crystallographic point groups (`pointgroup`) with
+  standard character tables, Mulliken labels (`repname`), and rotation matrices
+  (`matrix`, `rotation`); symmetric groups `Sₙ` and generated permutation groups
+  (`permutationgroup`, `cycles`, `permutation`).
+- **Any finite group** — build one from a multiplication table with
+  `FiniteGroup`, and validate an untrusted table with `check_group`.
+- **Character tables, two ways** — `charactertable` via a fast floating-point
+  class-algebra method (Burnside), or `method=:dixon` for an exact result over a
+  finite field; `dixon` returns the raw exact character matrix.
+- **Representations** — `irreps` for complex unitary irreps, `real_irreps` /
+  `real_rep` for real forms (with the Frobenius–Schur indicator from
+  `check_real_rep`), and `regular_rep` / `proj_operator` / `block_decomposition`
+  for building and decomposing representations.
+- **Projective & double-group reps** — `proj_reps`, `chiral_proj_reps`,
+  `cover_group`, and `check_proj_coeff` for spin-½ / double-group problems.
+
+## Two character-table methods
+
+`charactertable(g)` uses **Burnside's method** by default: it simultaneously
+diagonalizes the conjugacy-class algebra and reads off the irreducible
+characters. It is fast, but the entries are floating point and carry a small
+numerical tolerance.
+
+Passing `method=:dixon` switches to **Dixon's method**, which runs the same
+computation in a finite field 𝔽ₚ — chosen so the representations are defined
+there — and lifts the result back to characteristic zero. The characters are
+then obtained exactly, with no floating-point eigenvalue tolerance:
 
 ```julia
-julia> g = pointgroup(32)
-Point group : Oh
-Group order : 48
-Classes     : 10
-
-julia> g = pointgroup("Th")
-Point group : Th
-Group order : 24
-Classes     : 8
+julia> charactertable(pointgroup("D3"); method=:dixon)   # same table, computed exactly
+4×4 Matrix{Any}:
+ ""    "1"    "3₀₀₁⁺"    "2₋₁₁₀"
+ "1"  1.0    1.0        1.0
+ "2"  1.0    1.0       -1.0
+ "3"  2.0   -1.0        0.0
 ```
 
-The symmetric group `Sₙ` is available via `permutationgroup`:
+For the 32 point groups the default is the bundled standard table
+(`method=:table`); `:burnside` and `:dixon` recompute it from scratch.
 
-```julia
-julia> permutationgroup(4)
-Permutation group : S4
-Group order       : 24
-Classes           : 5
-```
+## Documentation
 
-In general, given a multiplication table `multab`, create the group with the
-`FiniteGroup` constructor (call `check_group` first to validate an untrusted
-table):
+Full manual at <https://jayren3996.github.io/FiniteGroups.jl/dev/>.
 
-```julia
-# Multiplication table of point group D3:
-multab = [
-    1  2  3  4  5  6
-    2  3  1  6  4  5
-    3  1  2  5  6  4
-    4  5  6  1  2  3
-    5  6  4  3  1  2
-    6  4  5  2  3  1
-]
-g = FiniteGroup(multab, "D3")
-```
+- [Getting Started](https://jayren3996.github.io/FiniteGroups.jl/dev/getting-started/) — installation, the first character table, accessors, irreps.
+- [Constructing Groups](https://jayren3996.github.io/FiniteGroups.jl/dev/groups/) — point groups, symmetric groups, and raw multiplication tables.
+- [Character Tables](https://jayren3996.github.io/FiniteGroups.jl/dev/character-tables/) — the `:table`, `:burnside`, and `:dixon` methods.
+- [Representations](https://jayren3996.github.io/FiniteGroups.jl/dev/representations/) — real / complex / projective representations and decomposition.
+- [API Reference](https://jayren3996.github.io/FiniteGroups.jl/dev/api/) — generated from the docstrings.
 
-### Character table
+## License
 
-Compute the character table of a group with `charactertable`:
-
-```julia
-ctable = charactertable(g)
-```
-
-For the point group `Oh` the result is:
-
-```julia
-julia> charactertable(pointgroup("Oh"))
-11×11 Matrix{Any}:
- ""      "1"    "2₀₀₁"    "3₁₁₁⁺"    "2₁₁₀"    "4₀₀₁⁻"    "-1"    "m₀₀₁"    "-3₁₁₁⁺"    "m₁₁₀"    "-4₀₀₁⁻"
- "A1g"  1      1         1          1         1          1       1         1           1         1
- "A1u"  1      1         1          1         1         -1      -1        -1          -1        -1
- "A2g"  1      1         1         -1        -1          1       1         1          -1        -1
- "A2u"  1      1         1         -1        -1         -1      -1        -1           1         1
- "Eg"   2      2        -1          0         0          2       2        -1           0         0
- "Eu"   2      2        -1          0         0         -2      -2         1           0         0
- "T2g"  3     -1         0          1        -1          3      -1         0           1        -1
- "T2u"  3     -1         0          1        -1         -3       1         0          -1         1
- "T1g"  3     -1         0         -1         1          3      -1         0          -1         1
- "T1u"  3     -1         0         -1         1         -3       1         0           1        -1
-```
-
-The returned `ctable` is a `CharacterTable`. Indexing with a single integer
-returns the `Characters` of one irrep (which also records whether it is real,
-complex, or pseudo-real):
-
-```julia
-julia> ctable = charactertable(pointgroup("Oh"));
-
-julia> ctable[10]
-Characters of Real representation of Oh:
-[3, -1, 0, -1, 1, -3, 1, 0, 1, -1]
-```
-
-It can also be sliced like a matrix; rows and submatrices come back as plain
-arrays:
-
-```julia
-julia> ctable[3, :]
-10-element Vector{Int64}:
-  1
-  1
-  1
- -1
- -1
-  1
-  1
-  1
- -1
- -1
-
-julia> ctable[1:3, :]
-3×10 Matrix{Int64}:
- 1  1  1   1   1   1   1   1   1   1
- 1  1  1   1   1  -1  -1  -1  -1  -1
- 1  1  1  -1  -1   1   1   1  -1  -1
-```
-
-Groups with complex irreducible representations return complex characters, e.g.
-the point group `T`:
-
-```julia
-julia> charactertable(pointgroup("T"))
-5×5 Matrix{Any}:
- ""        "1"         "2₀₀₁"       "3₁₁₁⁺"          "3₁₁₁⁻"
- "A"   1.0+0.0im   1.0+0.0im    1.0+0.0im        1.0+0.0im
- "1E"  1.0+0.0im   1.0+0.0im   -0.5-0.866025im  -0.5+0.866025im
- "2E"  1.0+0.0im   1.0+0.0im   -0.5+0.866025im  -0.5-0.866025im
- "T"   3.0+0.0im  -1.0+0.0im    0.0+0.0im        0.0+0.0im
-```
-
-### Irreducible representations
-
-Compute all irreducible representations of a group with `irreps`. It returns one
-entry per irrep; each entry is a vector of representation matrices indexed by
-group element:
-
-```julia
-julia> g = pointgroup("T");
-
-julia> reps = irreps(g);
-
-julia> length(reps)          # T has 4 irreducible representations
-4
-
-julia> T = reps[end];        # the 3-dimensional irrep
-
-julia> length(T), size(T[1]) # 12 group elements, each a 3×3 matrix
-(12, (3, 3))
-
-julia> T[1]                  # the identity element
-3×3 Matrix{Float64}:
- 1.0  0.0  0.0
- 0.0  1.0  0.0
- 0.0  0.0  1.0
-
-julia> T[5]
-3×3 Matrix{Float64}:
- 0.0  0.0  1.0
- 1.0  0.0  0.0
- 0.0  1.0  0.0
-```
-
-Pass `R=true` to obtain real (orthogonal) irreps, projecting complex ones into
-their real form:
-
-```julia
-reps = irreps(g; R=true)
-```
-
-A reducible representation can be split back into irreducible blocks with
-`block_decomposition`.
+MIT — see [LICENSE](LICENSE).
