@@ -62,6 +62,10 @@ vector of matrices, one per group element) and coefficients `χ`. Given a group
 `cᵢ = χ[i]`. The two-argument form uses `cᵢ = χ[i]` directly. Projecting the
 regular representation with the rows of a character table is how [`irreps`](@ref)
 isolates each isotypic component.
+
+For an abelian group the two lengths coincide (`length(class(g)) == order(g)`),
+so the class-function interpretation is taken; use the two-argument form when you
+need the full vector `cᵢ = χ[i]` without conjugation.
 """
 function proj_operator(r::AbstractVector{<:AbstractMatrix}, χ::AbstractVector{<:Number}, g::AbstractFiniteGroup)
     dtype = promote_type(eltype(χ), eltype(eltype(r)))
@@ -225,7 +229,11 @@ end
 
 function real_irreps(g::AbstractFiniteGroup, χ::AbstractVector)
     rep = irreps(g, χ)
-    if promote_type(typeof.(χ)...) <: Real
+    # Realify by the Frobenius–Schur indicator, not the storage type of χ: a
+    # pseudo-real (FS = −1) irrep has a real-valued character, so a real-typed χ
+    # must still be doubled. FS = +1 reps are already real (`irreps` returns the
+    # real form); FS ∈ {0, −1} need the 2×-dimensional real block.
+    if isone(check_real_rep(g, χ))
         rep
     else
         [[real(m) imag(m); -imag(m) real(m)] for m in rep]
@@ -325,7 +333,26 @@ function oplus(mats::AbstractMatrix...)
 end
 
 function oplus(reps::AbstractVector{<:AbstractMatrix{<:Number}}...)
+    allequal(length.(reps)) ||
+        throw(DimensionMismatch("oplus: representations must have equal length; got $(length.(reps))."))
     [oplus((rep[i] for rep in reps)...) for i=1:length(reps[1])]
+end
+#-------------------------------------------------------------------------------
+"""
+Drop equivalent duplicates from a list of irreducible representations. Two
+irreps are equivalent iff their characters (traces) agree, so we keep one
+representative per distinct character vector.
+"""
+function dedup_reps(reps::AbstractVector; tol::Real=1e-7)
+    out = empty(reps)
+    chars = Vector{ComplexF64}[]
+    for rep in reps
+        χ = ComplexF64[tr(m) for m in rep]
+        any(c -> length(c) == length(χ) && norm(c - χ) < tol, chars) && continue
+        push!(chars, χ)
+        push!(out, rep)
+    end
+    out
 end
 #-------------------------------------------------------------------------------
 """
@@ -354,7 +381,9 @@ function equivalent_transform(rep1::AbstractVector{<:AbstractMatrix}, rep2::Abst
     D = size(rep1[1], 1)
     H = sum(kron(conj(rep2[i]), rep1[i]) for i = 1:length(rep1))
     e, v = eigen(H)
-    @assert abs(e[end]) - abs(e[end-1]) > 1e-3 "Encounter possible degeneracy, implying reducibility."
+    # A 1D irrep gives a 1×1 `H` (a single eigenvalue), so there is no `e[end-1]`
+    # to compare against; the non-degeneracy check only applies for D ≥ 2.
+    length(e) == 1 || @assert abs(e[end]) - abs(e[end-1]) > 1e-3 "Encounter possible degeneracy, implying reducibility."
     reshape(v[:, end], D, D) * sqrt(D)
 end
 #-------------------------------------------------------------------------------
@@ -362,6 +391,7 @@ end
 Check whether a group is legit
 """
 function check_rep(g::AbstractFiniteGroup, r::AbstractVector{<:AbstractMatrix}; tol::Real=1e-7)
+    length(r) == order(g) || return false   # a rep has exactly one matrix per element
     Q = Matrix{Bool}(undef, order(g), order(g))
     for k = 1:order(g) 
         for l = 1:order(g)
@@ -375,7 +405,9 @@ end
 function check_unitary(r::AbstractVector{<:AbstractMatrix}; tol::Real=1e-7)
     Q = Vector{Bool}(undef, length(r))
     for i = 1:length(r)
-        Q[i] = norm(r[i]' * r[i] - I) < tol
+        m = r[i]
+        # require squareness: a non-square isometry has m'm = I but is not unitary
+        Q[i] = size(m, 1) == size(m, 2) && norm(m' * m - I) < tol
     end
     all(Q)
 end

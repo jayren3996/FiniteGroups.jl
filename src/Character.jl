@@ -53,7 +53,7 @@ struct CharacterTable
     names::Vector{String}
 end
 
-function CharacterTable(tab::Vector{Characters})
+function CharacterTable(tab::AbstractVector{<:Characters})
     names = Vector{String}(undef, length(tab))
     n = 0
     for i = 1:length(tab)
@@ -132,7 +132,10 @@ function burnside(
     tol::Real=1e-7
 )
     NC = size(h, 1)
-    v = [I(NC)]
+    # Start from a floating identity (not the `Bool` `I(NC)`): for a one-class
+    # group the loop never splits and this basis is returned verbatim, and a
+    # `Bool`/`BitVector` basis then breaks the `Characters` constructor.
+    v = [Matrix(1.0I, NC, NC)]
     while true
         rh = sum(rand() * h[i,:,:] for i = 1:NC)
         v = vcat([vec_split(rh, vi, tol=tol) for vi in v]...)
@@ -186,11 +189,17 @@ Split the vector space according to the split of the eigen values.
 """
 function vec_split(h::AbstractMatrix, vs::AbstractVecOrMat; tol::Real=1e-7)
     isone(size(vs, 2)) && return [vs]
-    php = vs' * h * vs 
+    # `vs` carries an orthonormal basis of the current invariant subspace (the
+    # initial basis is `I` and every split below re-orthonormalizes), so
+    # `vs' * h * vs` is the genuine restriction of `h` and its eigenvalues are
+    # the eigenvalues of `h` on that subspace. Skipping the orthonormalization
+    # would make this the oblique compression `Gᵀ·(h|ₛ)` and mis-cluster the
+    # spectrum on a non-orthonormal basis.
+    php = vs' * h * vs
     e, v = eigen(php)
     e_split = spectrum_split(e, tol=tol)
     # zero-energy degeneracy is numerically unstable!!!
-    isone(length(e_split)) ? [vs] : [vs * v[:, ei] for ei in e_split]
+    isone(length(e_split)) ? [vs] : [svd(vs * v[:, ei]).U for ei in e_split]
 end
 #-------------------------------------------------------------------------------
 """

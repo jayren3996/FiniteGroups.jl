@@ -52,7 +52,13 @@ function permutationgroup(gens::AbstractVector{<:Permutation}; name::String="Unn
     PermutationGroup(name, multab, ginv, cls, clsv, mult, eles)
 end
 
-permutationgroup(n::Integer) = permutationgroup([cycles(1:2), cycles(1:n)], name="S$n")
+function permutationgroup(n::Integer)
+    n ≥ 0 || throw(ArgumentError("permutationgroup(n) needs n ≥ 0; got n = $n."))
+    # S₀ and S₁ are trivial: a transposition (1 2) makes sense only for n ≥ 2,
+    # otherwise the generating set below would spuriously build an order-2 group.
+    n ≥ 2 || return permutationgroup([Permutation(zeros(Int, 0, 2))], name="S$n")
+    permutationgroup([cycles(1:2), cycles(1:n)], name="S$n")
+end
 
 
 function Base.string(p::Permutation)
@@ -71,6 +77,10 @@ end
 Base.show(io::IO, p::Permutation) = print(io, string(p))
 
 Base.isequal(p1::Permutation, p2::Permutation) = isequal(p1.M, p2.M)
+# Equal permutations share the same canonical `M`, so `==`/`hash` track `isequal`
+# and make `Permutation`s behave correctly as `Set`/`Dict` keys.
+==(p1::Permutation, p2::Permutation) = p1.M == p2.M
+Base.hash(p::Permutation, h::UInt) = hash(p.M, hash(:Permutation, h))
 Base.isless(p1::Permutation, p2::Permutation) = isless(reshape(p1.M, :), reshape(p2.M, :))
 
 export permutation
@@ -82,11 +92,18 @@ Construct a permutation from a two-column matrix `M`: each row `[a b]` means
 disjoint-cycle notation.
 """
 function permutation(M::AbstractMatrix{<:Integer})
+    size(M, 2) == 2 || throw(ArgumentError("permutation expects a two-column matrix [a b] (a ↦ b); got size $(size(M))."))
     p = sortperm(view(M, :, 1))
     M = M[p, 1:2]
-    row = [i for i = 1:size(M, 1) if M[i,1] ≠ M[i,2]]
-    dup = [i for i = 2:length(row) if M[row[i-1], 1] == M[row[i], 1]]
-    deleteat!(row, dup)
+    row = [i for i = 1:size(M, 1) if M[i,1] ≠ M[i,2]]   # ignore fixed points a ↦ a
+    src = M[row, 1]                                       # sorted ascending by construction
+    dst = M[row, 2]
+    # A genuine permutation maps its moved points bijectively onto themselves:
+    # sources must be distinct and equal, as a set, to the targets. Without this
+    # an invalid map (e.g. `[1 2]`, i.e. 1 ↦ 2 with nothing mapping to 1) is built
+    # and later loops forever in `tocycles`/display.
+    (allunique(src) && sort(dst) == src) ||
+        throw(ArgumentError("not a valid permutation: $(Array(M[row, :])) (rows [a b] mean a ↦ b) is not a bijection on its moved points."))
     Permutation(Array(M[row, :]))
 end
 
@@ -101,7 +118,7 @@ for the two-column mapping form and [`permutationgroup`](@ref) to close a set of
 generators into a group.
 """
 function cycles(cyc::Union{AbstractVector{<:Integer}, Tuple}...)
-    n = sum(length(c) for c in cyc)
+    n = sum(length(c) for c in cyc; init=0)   # init=0 so `cycles()` is the identity
     iszero(n) && (return Permutation(zeros(Int64, 0, 2)))
     M = Matrix{Int64}(undef, n, 2)
     i = 1

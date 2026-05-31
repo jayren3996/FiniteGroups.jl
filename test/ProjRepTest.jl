@@ -11,9 +11,10 @@ for gi = 1:32
             @testset "$(repname(g, i))" begin
                 bg, coeff = double_group(g, Int.(χ))
                 reps = proj_reps(bg, coeff, 2)
+                # Σ dim² over the inequivalent projective irreps equals |bg|
+                @test sum(size(rep[1], 1)^2 for rep in reps) == order(bg)
                 for rep in reps
                     @test check_unitary(rep)                                # check unitary
-                    @test sum(size(r[1], 1)^2 for r in rep) == order(bg)
                 end
                 rreps = proj_reps(bg, coeff, 2, R=true)
                 for rep in rreps

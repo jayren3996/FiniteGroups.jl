@@ -28,8 +28,12 @@ function proj_to_irrep(
     spaces = map(1:size(vecs[1], 2)) do i 
         hcat((vecs[j][:, i] for j=1:D)...)
     end
-    if R && sum(norm.(imag.(rep))) > 1e-7
-        [sqrt(2)*[real(s) imag(s)] for s in spaces] 
+    # Realify when the *irrep* is complex (a complex/pseudo-real irrep pairs with
+    # its conjugate to form one real block), not when the reducible `rep` happens
+    # to carry an imaginary part: a real `rep` containing a complex irrep still
+    # needs its 1D complex space turned into a 2D real one.
+    if R && sum(norm.(imag.(irep))) > 1e-7
+        [sqrt(2)*[real(s) imag(s)] for s in spaces]
     else
         spaces
     end
@@ -40,9 +44,15 @@ Find a list of projection Sᵢ that
     Sᵢ⁺⋅D(g)⋅Sᵢ = dᵢ(g),
 where {dᵢ} is a list of irreducible representations as an input.
 """
+# `ireps` is a list of irreps (each a vector of matrices). A mixed real/complex
+# collection has element type `Vector` (the join of `Vector{Matrix{Float64}}` and
+# `Vector{Matrix{ComplexF64}}`), so constrain only the outer-vector-of-vectors
+# shape — `<:AbstractVector{<:AbstractMatrix}` would reject that mix. The inner
+# matrices are matrices (not vectors), so this never collides with the
+# single-irrep method above.
 function proj_to_irrep(
-    rep::AbstractVector{<:AbstractMatrix}, 
-    ireps::AbstractVector{<:AbstractVector{<:AbstractMatrix}};
+    rep::AbstractVector{<:AbstractMatrix},
+    ireps::AbstractVector{<:AbstractVector};
     R::Bool=false
 )
     vcat([proj_to_irrep(rep, irep, R=R) for irep in ireps]...)

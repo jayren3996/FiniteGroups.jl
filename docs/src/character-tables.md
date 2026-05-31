@@ -23,9 +23,10 @@ Three algorithms are available through the `method` keyword:
 - **`:table`** — the standard table bundled with the package, with conventional
   irrep labels. This is the default for point groups, and is only available for
   them.
-- **`:dixon`** — Dixon's method: the table is computed *exactly* by working in a
-  finite field ``\mathbb{F}_p`` and lifting the result back to characteristic
-  zero. This is the default for every group other than the point groups.
+- **`:dixon`** — Dixon's method: the character values are recovered as exact
+  integer combinations of roots of unity by working in a finite field
+  ``\mathbb{F}_p`` (no floating-point eigenvalue tolerance), then assembled into
+  `ComplexF64`. This is the default for every group other than the point groups.
 - **`:burnside`** — a floating-point method that simultaneously diagonalizes the
   class algebra. Entries are `Float64` / `ComplexF64` and carry small numerical
   error; pass `method=:burnside` to use it instead of the exact default.

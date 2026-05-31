@@ -18,9 +18,12 @@ export dixon
 """
     dixon(g::AbstractFiniteGroup [, h]) -> Matrix{ComplexF64}
 
-Exact character table of `g` (rows = irreps, columns = conjugacy classes) via
-Dixon's method over a finite field. `h` defaults to `class_multab(g)`. This is
-the engine behind `charactertable(g; method = :dixon)`.
+Character table of `g` (rows = irreps, columns = conjugacy classes) via Dixon's
+method over a finite field. The hard step — the *integer* multiplicities of the
+roots of unity that make up each character value — is computed exactly in 𝔽ₚ,
+with no floating-point eigenvalue tolerance; those exact multiplicities are then
+assembled into the `ComplexF64` entries returned here. `h` defaults to
+`class_multab(g)`. This is the engine behind `charactertable(g; method = :dixon)`.
 """
 function dixon(g::AbstractFiniteGroup, h::AbstractArray{<:Integer, 3})
     NC = size(h, 1)
@@ -88,7 +91,12 @@ function central_characters_modp(h::AbstractArray{<:Integer, 3}, p::Integer)
         end
         spaces = new
     end
-    @assert all(s -> isone(size(s, 2)), spaces) "Dixon: class algebra not fully split over 𝔽ₚ = $p."
+    # There are exactly NC central characters (the class algebra is NC-dimensional
+    # and splits into NC one-dimensional common eigenspaces over a splitting
+    # field). Check the count too: `all(...)` over an empty `spaces` is vacuously
+    # true, which would otherwise let `dixon` return undef/garbage rows for a bad
+    # `h` or too-small prime.
+    @assert length(spaces) == NC && all(s -> isone(size(s, 2)), spaces) "Dixon: class algebra did not split into $NC one-dimensional central characters over 𝔽ₚ = $p (got $(length(spaces)))."
     [s[:, 1] for s in spaces]
 end
 
@@ -158,6 +166,12 @@ representative recovers the exact integer multiplicity.
 function lift_table(g::AbstractFiniteGroup, table::AbstractMatrix{<:Integer}, p::Integer, n::Integer, Z::Integer)
     NC = size(table, 1)
     out = Matrix{ComplexF64}(undef, NC, NC)
+    # Irrep dimensions dᵣ = χᵣ(1), read off the identity class. Each character
+    # value is a sum of dᵣ m-th roots of unity, so the recovered multiplicities
+    # must be non-negative and sum to dᵣ — checked below as a guard against a
+    # too-small prime or a malformed class table silently yielding garbage.
+    idc = inclass(g, 1)
+    dims = [(d = mod(table[r, idc], p); d > p ÷ 2 ? d - p : d) for r = 1:NC]
     for k = 1:NC
         e = class(g, k)[1]
         m = order(g, e)
@@ -176,6 +190,7 @@ function lift_table(g::AbstractFiniteGroup, table::AbstractMatrix{<:Integer}, p:
         end
         for r = 1:NC
             val = 0.0 + 0.0im
+            asum = 0                             # Σₗ aₗ must equal the dimension dᵣ
             for l = 0:m-1
                 acc = 0
                 for t = 0:m-1
@@ -183,8 +198,11 @@ function lift_table(g::AbstractFiniteGroup, table::AbstractMatrix{<:Integer}, p:
                 end
                 a = mod(acc * invm, p)
                 a = a > p ÷ 2 ? a - p : a        # symmetric representative
+                0 ≤ a ≤ dims[r] || error("Dixon: root-of-unity multiplicity $a ∉ 0:$(dims[r]) for irrep $r, class $k (prime p = $p too small?).")
+                asum += a
                 iszero(a) || (val += a * cis(2π * l / m))
             end
+            asum == dims[r] || error("Dixon: multiplicities sum to $asum ≠ dim $(dims[r]) for irrep $r, class $k.")
             out[r, k] = val
         end
     end

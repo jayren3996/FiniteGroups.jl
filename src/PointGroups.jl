@@ -68,7 +68,9 @@ Symmetry operations of `g`: the whole vector, or the `i`-th element. For a
 [`pointgroup`](@ref) these are operation-name strings (`"E"`, `"C3"`, …); for a
 [`permutationgroup`](@ref) they are permutations.
 """
-operation(g::PointGroup) = g.operations
+# Return copies of the bundled backing data so callers cannot mutate package
+# globals (the operation/matrix/rep tables are shared `const`s).
+operation(g::PointGroup) = copy(g.operations)
 operation(g::PointGroup, i) = g.operations[i]
 """
     matrix(g::PointGroup[, i])
@@ -77,8 +79,8 @@ Rotation matrices of the point group `g` in the stored (crystal-axis) basis:
 the whole vector, or the `i`-th operation. See [`rotation`](@ref) for the
 Cartesian form, which differs for hexagonal groups.
 """
-matrix(g::PointGroup) = PointGroupRotationMatrices[groupindex(g)]
-matrix(g::PointGroup, i) = PointGroupRotationMatrices[groupindex(g)][i]
+matrix(g::PointGroup) = copy.(PointGroupRotationMatrices[groupindex(g)])
+matrix(g::PointGroup, i) = copy(PointGroupRotationMatrices[groupindex(g)][i])
 """
     rotation(g::PointGroup[, i])
 
@@ -93,7 +95,7 @@ function rotation(g::PointGroup)
         invhex = inv(HexagonalAxes)
         [HexagonalAxes * m * invhex for m in PointGroupRotationMatrices[GI]]
     else
-        PointGroupRotationMatrices[GI]
+        copy.(PointGroupRotationMatrices[GI])
     end
 end
 function rotation(g::PointGroup, i::Integer)
@@ -102,7 +104,7 @@ function rotation(g::PointGroup, i::Integer)
         mat = PointGroupRotationMatrices[GI][i]
         HexagonalAxes * mat * inv(HexagonalAxes)
     else
-        PointGroupRotationMatrices[GI][i]
+        copy(PointGroupRotationMatrices[GI][i])
     end
 end
 function rotation(g::PointGroup, i::AbstractVector{<:Integer})
@@ -111,29 +113,23 @@ function rotation(g::PointGroup, i::AbstractVector{<:Integer})
         invhex = inv(HexagonalAxes)
         [HexagonalAxes * m * invhex for m in PointGroupRotationMatrices[GI][i]]
     else
-        PointGroupRotationMatrices[GI][i]
+        copy.(PointGroupRotationMatrices[GI][i])
     end
 end
 
 """
-    repname(g::PointGroup, i::Integer; convention=1)
-    repname(g::PointGroup, χ::AbstractVector; convention=1)
+    repname(g::PointGroup, i::Integer)
+    repname(g::PointGroup, χ::AbstractVector)
 
-Conventional label of an irreducible representation of the point group `g`,
-selected by its index `i` or by its character vector `χ`. `convention` chooses
-between the two bundled Mulliken-style naming schemes.
+Conventional Mulliken-style label of an irreducible representation of the point
+group `g`, selected by its index `i` or by its character vector `χ`.
 """
-function repname(g::PointGroup, i::Integer; convention::Integer=1)
-    if convention == 1
-        PointGroupRepresentationNames[groupindex(g)][i]
-    elseif convention == 2
-        PointGroupRepresentationNames2[groupindex(g)][i]
-    end
+function repname(g::PointGroup, i::Integer)
+    PointGroupRepresentationNames[groupindex(g)][i]
 end
 
-function repname(g::PointGroup, χ::AbstractVector; convention::Integer=1)
-    ind = pg_irrep_index(g, χ)
-    repname(g, ind, convention=convention)
+function repname(g::PointGroup, χ::AbstractVector)
+    repname(g, pg_irrep_index(g, χ))
 end
 
 function pg_irrep_index(g::PointGroup, χ::AbstractVector)
@@ -176,15 +172,19 @@ function irreps(g::PointGroup; R::Bool=false)
     GI = groupindex(g)
     reps = PointGroupRepresentations[GI]
     if R
-        map(reps) do rep 
+        # Realify each complex irrep; a complex-conjugate pair then yields two
+        # copies of the same real irrep, so drop the duplicates (matching the
+        # generic `real_irreps`). `copy.` avoids aliasing the bundled `const`s.
+        realified = map(reps) do rep
             if sum(norm.(imag.(rep))) > 1e-7
                 [[real(m) imag(m); -imag(m) real(m)] for m in rep]
             else
-                rep 
+                copy.(rep)
             end
         end
+        dedup_reps(realified)
     else
-        reps
+        [copy.(rep) for rep in reps]
     end
 end
 

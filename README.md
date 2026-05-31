@@ -90,10 +90,12 @@ julia> length(reps), [size(r[1], 1) for r in reps]   # 3 irreps, of dimension 1,
 
 ## Two character-table methods
 
-`charactertable(g)` uses **Dixon's method** by default: it diagonalizes the
-conjugacy-class algebra in a finite field 𝔽ₚ — chosen so the representations are
-defined there — and lifts the result back to characteristic zero. The characters
-come out exactly, with no floating-point eigenvalue tolerance.
+For a general group, `charactertable(g)` uses **Dixon's method** by default: it
+diagonalizes the conjugacy-class algebra in a finite field 𝔽ₚ — chosen so the
+representations are defined there — and recovers each character as an exact
+integer combination of roots of unity, with no floating-point eigenvalue
+tolerance. (The 32 point groups default to their bundled table instead — see
+below.)
 
 Passing `method=:burnside` switches to **Burnside's method**, which performs the
 same class-algebra diagonalization with floating-point eigenvalues. It can be

@@ -25,9 +25,13 @@ struct FiniteGroup{T <: Integer} <: AbstractFiniteGroup
 end
 
 function FiniteGroup(
-    multab::AbstractMatrix{<:Integer}, 
+    multab::AbstractMatrix{<:Integer},
     name::String="Unnamed group"
 )
+    size(multab, 1) == size(multab, 2) ||
+        throw(DimensionMismatch("multiplication table must be square; got size $(size(multab))."))
+    # Materialize views/adjoints so the concrete `Matrix` field accepts them.
+    multab = multab isa Matrix ? multab : Matrix(multab)
     ginv = group_inverse(multab)
     cls, clsv = conjugate_class(multab, ginv)
     mult = length.(cls)
@@ -170,6 +174,11 @@ Throws an informative error on the first violation; returns `true` otherwise.
 """
 function check_group(multab)
     n = size(multab, 1)
+    # Validate shape and entry range first; otherwise the associativity loop below
+    # indexes `multab[multab[i,j], k]` with an out-of-range entry and throws a raw
+    # `BoundsError` instead of the promised informative message.
+    size(multab, 2) == n || error("Multiplication table must be square; got size $(size(multab)).")
+    all(x -> 1 ≤ x ≤ n, multab) || error("Table entries must all lie in 1:$n.")
     multab[1, :] == 1:n || error("Element 1 not identity")
     multab[:, 1] == 1:n || error("Element 1 not identity")
     for i=1:n, j=1:n, k=1:n

@@ -5,4 +5,5 @@ using FiniteGroups, LinearAlgebra, Test
     include("DecompTest.jl")
     include("ProjRepTest.jl")
     include("DixonTest.jl")
+    include("ReviewFixesTest.jl")
 end
