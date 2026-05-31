@@ -60,6 +60,10 @@ name(g::PointGroup, i::Integer) = operation(g, i)
 Index (1–32) of the point group `g` among the crystallographic point groups.
 """
 groupindex(g::PointGroup) = PointGroupDict[name(g)]
+# The accessors below return copies of the bundled backing data so callers
+# cannot mutate package globals (the operation/matrix/rep tables are shared
+# `const`s). NB: keep this comment above the docstring, not between the docstring
+# and the method, or the docstring detaches and Documenter's @ref breaks.
 """
     operation(g)
     operation(g, i)
@@ -68,8 +72,6 @@ Symmetry operations of `g`: the whole vector, or the `i`-th element. For a
 [`pointgroup`](@ref) these are operation-name strings (`"E"`, `"C3"`, …); for a
 [`permutationgroup`](@ref) they are permutations.
 """
-# Return copies of the bundled backing data so callers cannot mutate package
-# globals (the operation/matrix/rep tables are shared `const`s).
 operation(g::PointGroup) = copy(g.operations)
 operation(g::PointGroup, i) = g.operations[i]
 """

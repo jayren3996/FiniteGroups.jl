@@ -44,14 +44,14 @@ Find a list of projection Sᵢ that
     Sᵢ⁺⋅D(g)⋅Sᵢ = dᵢ(g),
 where {dᵢ} is a list of irreducible representations as an input.
 """
-# `ireps` is a list of irreps (each a vector of matrices). A mixed real/complex
-# collection has element type `Vector` (the join of `Vector{Matrix{Float64}}` and
-# `Vector{Matrix{ComplexF64}}`), so constrain only the outer-vector-of-vectors
-# shape — `<:AbstractVector{<:AbstractMatrix}` would reject that mix. The inner
-# matrices are matrices (not vectors), so this never collides with the
-# single-irrep method above.
 function proj_to_irrep(
     rep::AbstractVector{<:AbstractMatrix},
+    # `ireps` is a list of irreps (each a vector of matrices). A mixed
+    # real/complex collection has element type `Vector` (the join of
+    # `Vector{Matrix{Float64}}` and `Vector{Matrix{ComplexF64}}`), so constrain
+    # only the outer-vector-of-vectors shape — `<:AbstractVector{<:AbstractMatrix}`
+    # would reject that mix. The inner matrices are matrices (not vectors), so
+    # this never collides with the single-irrep method above.
     ireps::AbstractVector{<:AbstractVector};
     R::Bool=false
 )
